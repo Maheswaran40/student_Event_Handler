@@ -1,0 +1,60 @@
+# 🔹 Node modules (very important)
+
+node_modules/
+
+# 🔹 Environment variables (secrets)
+
+.env
+.env.*
+
+# 🔹 Logs
+
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 🔹 Build folders
+
+build/
+dist/
+
+# 🔹 OS files
+
+.DS_Store
+Thumbs.db
+
+# 🔹 IDE / Editor files
+
+.vscode/
+.idea/
+
+# 🔹 File uploads (if you store locally)
+
+uploads/
+
+# 🔹 Temporary files
+
+tmp/
+temp/
+
+# 🔹 Cache
+
+.cache/
+.vite/
+
+# 🔹 Coverage (testing)
+
+coverage/
+
+# 🔹 React / Next build
+
+.next/
+out/
+
+# 🔹 Misc
+
+*.zip
+*.tar
+*.gz

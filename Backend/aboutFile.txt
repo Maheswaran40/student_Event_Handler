@@ -1,0 +1,5 @@
+npm i express dotenv bcrypt cors nodemailer cookie-parser jsonwebtoken mongoose multer helmet express-rate-limit morgan     
+npm i -D nodemon
+helmet => Adds security headers to your app
+express-rate-limit => Limits number of requests from a user
+morgan => Logs all requests in terminal
