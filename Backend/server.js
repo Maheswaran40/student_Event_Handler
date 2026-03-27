@@ -6,21 +6,25 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Import routes
-const studentRoutes = require('./routes/studentRoutes');
-const eventRoutes = require('./routes/eventRoutes');
+const studentRoutes = require('./routes/studentroutes');
+const eventRoutes = require('./routes/eventroutes');
 const activityRoutes = require('./routes/activityRoutes');
 
 // Initialize express app
 const app = express();
-
+// cors
+const cors=require("cors")
+app.use(cors())
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Database connection
 const ConnectDB =require("./config/db")
-
 ConnectDB();
+
+
+
 
 // Request logging middleware
 app.use((req, res, next) => {
