@@ -12,6 +12,7 @@ exports.createEvent = async (req, res) => {
       message: 'Event created successfully',
       data: event 
     });
+    res.json({ total: count });
   } catch (error) {
     res.status(400).json({ 
       success: false, 
@@ -21,18 +22,49 @@ exports.createEvent = async (req, res) => {
 };
 
 // Get all events
+// exports.getAllEvents = async (req, res) => {
+//   try {
+//     const events = await Event.find();
+//     res.status(200).json({ 
+//       success: true, 
+//       count: events.length,
+//       data: events 
+//     });
+//   } catch (error) {
+//     res.status(400).json({ 
+//       success: false, 
+//       error: error.message 
+//     });
+//   }
+// };
 exports.getAllEvents = async (req, res) => {
   try {
     const events = await Event.find();
-    res.status(200).json({ 
-      success: true, 
-      count: events.length,
-      data: events 
+
+    const eventsWithCount = await Promise.all(
+      events.map(async (event) => {
+        const count = await Student.countDocuments({ event: event._id });
+        console.log(count);
+        
+        return {
+          ...event.toObject(),
+          registeredCount: count
+        };
+      })
+    );
+     //  total number of events
+    const totalEvents = await Event.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      data: eventsWithCount,
+      totalEvents
     });
+
   } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
+    res.status(400).json({
+      success: false,
+      error: error.message
     });
   }
 };

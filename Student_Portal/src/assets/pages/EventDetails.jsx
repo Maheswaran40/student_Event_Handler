@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import RegistrationForm from './RegistrationForm';
 import { eventsData } from '../json/Event';
+import { Mycontext } from '../Context/Mycontext';
 
 const EventDetails = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const event = eventsData.find(ev => ev.id === eventId);
-
+   
+  const {eventCount}=useContext(Mycontext) 
+  // let eventCountData=eventCount.filter((v)=>(
+  //   v.title=="lemon in the spoon"
+  // ))
   const showSuccessToast = (message) => {
     const toast = document.createElement('div');
     toast.innerText = message;
@@ -67,7 +72,9 @@ const EventDetails = () => {
               </div>
             </div>
             <div className="bg-white/10 rounded-full px-4 py-2 text-sm font-mono">
-              <i className="fas fa-ticket-alt mr-1"></i> Limited Slots
+              <i className="fas fa-ticket-alt mr-1"></i> Limited Slots 
+            <span className='text-black-400 ps-3'>{eventCount}/10</span>
+            
             </div>
           </div>
         </div>

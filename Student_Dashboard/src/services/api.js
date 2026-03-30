@@ -26,54 +26,28 @@ api.interceptors.request.use(
   }
 )
 
+const EventUrl="http://localhost:5000/api/events"
 // Mock data for demonstration
 export const eventsService = {
-  getAllEvents: async () => {
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            id: 1,
-            title: 'Tech Conference 2024',
-            date: '2024-03-15',
-            time: '10:00 AM',
-            location: 'Convention Center, NYC',
-            description: 'Annual technology conference featuring top industry speakers',
-            attendees: 150,
-            image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87',
-            category: 'Technology'
-          },
-          {
-            id: 2,
-            title: 'Music Festival',
-            date: '2024-04-20',
-            time: '2:00 PM',
-            location: 'Central Park, NYC',
-            description: 'Outdoor music festival with multiple artists',
-            attendees: 500,
-            image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea',
-            category: 'Music'
-          },
-          {
-            id: 3,
-            title: 'Business Networking',
-            date: '2024-03-25',
-            time: '6:00 PM',
-            location: 'Downtown Hotel, NYC',
-            description: 'Network with business professionals',
-            attendees: 80,
-            image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72',
-            category: 'Business'
-          }
-        ])
-      }, 500)
-    })
+ getAllEvents: async () => {
+    try {
+      const res = await axios.get(EventUrl);
+      return res.data.data; // 👈 important
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      return [];
+    }
   },
+
   
   getEventById: async (id) => {
-    const events = await eventsService.getAllEvents()
-    return events.find(event => event.id === parseInt(id))
+    try {
+      const res = await axios.get(`EventUrl${id}`);
+      return res.data.data;
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      return null;
+    }
   },
   
   createEvent: async (eventData) => {

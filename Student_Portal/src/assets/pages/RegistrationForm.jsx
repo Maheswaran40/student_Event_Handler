@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
 import "../../style.css";
+import { Mycontext } from "../Context/Mycontext";
 
 const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
   let url = "http://localhost:5000/api/students/";
   let eventUrl = "http://localhost:5000/api/events/upcoming";
-
+   const {fetchEvents}=useContext(Mycontext)
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -19,18 +20,18 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
     phoneNo: "",
   });
 
+
+  
   // Fetch events on component mount
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         const res = await axios.get(eventUrl);
-        console.log("Fetched events:", res.data);
         
         // Extract the data array from the response
         // Since response has { success: true, count: 1, data: [...] }
         const eventsData = res.data.data || []; // Get data array or empty array
         setEvents(eventsData);
-        console.log("Events array:", eventsData);
       } catch (err) {
         console.error("Error fetching events:", err);
         setEvents([]); // Set empty array on error
@@ -39,6 +40,11 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
 
     fetchEvents();
   }, []);
+
+
+
+
+
 
   const departmentOptions = [
     "Computer Science",
@@ -85,6 +91,7 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
       setLoading(true);
       const res = await axios.post(url, formData);
       alert(res.data.message || "Registration successful!");
+      fetchEvents()
       onSuccess?.(res.data.data);
       
       // Reset form

@@ -1,49 +1,74 @@
-#banner{
-    animation: banner 2s linear 1;
+#banner {
+  background-image: url("./assets/images/herobanner.png");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-color: #007ea3;
+  animation: banner 2s linear 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+}
+/* From Uiverse.io by Shakil-Babu */
+.btn-explore {
+  background-color: white;
+  padding: 14px 40px;
+  color: black;
+  font-weight: bolder;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 10px;
+  border: 2px dashed #00bfa6;
+  box-shadow:
+    rgba(50, 50, 93, 0.25) 0px 2px 5px -1px,
+    rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+  transition: 0.4s;
+  position: absolute;
 
 }
-/* From Uiverse.io by Shakil-Babu */ 
-.btn-explore {
- background-color: white;
- padding: 14px 40px;
- color: black;
- font-weight:bolder ;
- text-transform: uppercase;
- letter-spacing: 2px;
- cursor: pointer;
- border-radius: 10px;
- border: 2px dashed #00BFA6;
- box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
- transition: .4s;
-position: absolute;
-bottom: 40px;
-right: 200px;
-}
+
+
 
 
 .btn-explore span:last-child {
- display: none;
+  display: none;
 }
 
 .btn-explore:hover {
- transition: .4s;
- border: 2px dashed white ;
- background-color: #00BFA6;
- color: white;
+  transition: 0.4s;
+  border: 2px dashed white;
+  background-color: #00bfa6;
+  color: white;
 }
 
 .btn-explore:active {
- background-color: #87dbd0;
+  background-color: #87dbd0;
 }
 
+@media (max-width: 426px) {
+  #banner {
+    background-image: url("./assets/images/heromobile.png");
+    background-size: cover;
+    height: 100vh;
+    width: 100vw;
+    align-items: end;
+  }
+  
+ .btn-explore {
+  margin-bottom: 130px;
+ }
+}
 
-@keyframes banner{
-    from{
-        filter: opacity(0);
-    }
-    to{
-        filter: opacity(100);
-    }
+@keyframes banner {
+  from {
+    filter: opacity(0);
+  }
+  to {
+    filter: opacity(100);
+  }
 }
 
 select {
