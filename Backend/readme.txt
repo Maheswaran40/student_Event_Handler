@@ -1,6 +1,6 @@
 event creation:-
 {
-  "title": "lemon in the spoon",
+  "title": "lemon in the Spoon",
   "description": "Exciting spoon balancing competition",
   "date": "2026-04-14",
   "venue": "Main Auditorium",

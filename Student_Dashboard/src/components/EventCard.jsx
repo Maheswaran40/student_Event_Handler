@@ -29,7 +29,7 @@ const EventCard = ({ event, onRegister, onViewDetails }) => {
           </div>
           <div className="flex items-center text-gray-600">
             <FiMapPin className="mr-2" />
-            <span className="text-sm">{event.location}</span>
+            <span className="text-sm">{event.venue}</span>
           </div>
           <div className="flex items-center text-gray-600">
             <FiUsers className="mr-2" />
