@@ -43,6 +43,10 @@ const eventSchema = new mongoose.Schema({
     type: String,
     enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
     default: 'upcoming'
+  },
+  image:{
+    type: String,
+    require:[true, 'Event image is required']
   }
 }, {
   timestamps: true

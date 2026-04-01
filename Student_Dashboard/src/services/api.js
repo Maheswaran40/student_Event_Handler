@@ -58,13 +58,50 @@ export const eventsService = {
   //     }, 500)
   //   })
   // },
+  // createEvent: async (eventData) => {
+  //   try {
+  //     const res = await axios.post(EventUrl, eventData);
+  //     console.log("event creted",res)
+  //     return res.data.data; // Returns the created event
+  //   } catch (error) {
+  //     console.error("Error creating event:", error);
+  //     throw error; // Throw error so component can handle it
+  //   }
+  // },
   createEvent: async (eventData) => {
     try {
-      const res = await axios.post(EventUrl, eventData);
-      return res.data.data; // Returns the created event
+      let dataToSend;
+
+      // 🔥 check if file exists
+      if (eventData.imageFile) {
+        dataToSend = new FormData();
+
+        dataToSend.append("title", eventData.title);
+        dataToSend.append("description", eventData.description);
+        dataToSend.append("date", eventData.date);
+        dataToSend.append("venue", eventData.venue);
+        dataToSend.append("incharge", eventData.incharge);
+        dataToSend.append("maxParticipants", eventData.maxParticipants);
+        dataToSend.append("status", eventData.status);
+
+        //  file
+        dataToSend.append("image", eventData.imageFile);
+      } else {
+        // normal JSON (no image case)
+        dataToSend = eventData;
+      }
+
+      const res = await axios.post(EventUrl, dataToSend, {
+        headers: eventData.imageFile
+          ? { "Content-Type": "multipart/form-data" }
+          : {},
+      });
+
+      return res.data.data;
+
     } catch (error) {
       console.error("Error creating event:", error);
-      throw error; // Throw error so component can handle it
+      throw error;
     }
   },
   

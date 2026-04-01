@@ -28,6 +28,7 @@ import {
   FiUserX,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
+import ImageUpload from "../components/ImageUpload";
 
 const AdminPanel = () => {
   const { user, isAdmin } = useAuth();
@@ -173,8 +174,9 @@ const AdminPanel = () => {
         incharge: formData.incharge, // ✅ Correct field name
         maxParticipants: parseInt(formData.maxParticipants) || 10, // Convert to number
         status: "upcoming", // Optional, default is 'upcoming'
+       imageFile: formData.imageFile 
       };
-
+      console.log("imageurl", formData.imageFile);
       console.log("Sending to backend:", eventDataToSend);
 
       // Send to API
@@ -205,9 +207,9 @@ const AdminPanel = () => {
 
   const handleUpdateEvent = async () => {
     try {
-      await eventsService.updateEvent(editingEvent.id, formData);
+      await eventsService.updateEvent(editingEvent._id, formData);
       const updatedEvents = events.map((event) =>
-        event.id === editingEvent.id ? { ...event, ...formData } : event,
+        event.id === editingEvent._id ? { ...event, ...formData } : event,
       );
       setEvents(updatedEvents);
       toast.success("Event updated successfully!");
@@ -221,7 +223,8 @@ const AdminPanel = () => {
 
   const handleDeleteEvent = async (eventId) => {
     if (window.confirm("Are you sure you want to delete this event?")) {
-       console.log("Deleting event with ID:", eventId);
+      console.log("Deleting event with ID:", eventId);
+
       try {
         await eventsService.deleteEvent(eventId);
         setEvents(events.filter((event) => event.id !== eventId));
@@ -240,7 +243,7 @@ const AdminPanel = () => {
       date: event.date,
       time: event.time,
       venue: event.venue,
-       incharge:event. incharge,
+      incharge: event.incharge,
       maxParticipants: event.maxParticipants || "",
       image: event.image || "",
     });
@@ -572,11 +575,11 @@ const AdminPanel = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {event.location}
+                            {event.venue}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="text-sm text-gray-900">
-                              {event.attendees}
+                              {event.registeredCount}/{event.capacity}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -992,16 +995,10 @@ const AdminPanel = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Image URL
-                    </label>
-                    <input
-                      type="url"
-                      name="image"
-                      value={formData.image}
-                      onChange={handleInputChange}
-                      className="input-field"
-                      placeholder="https://example.com/image.jpg"
+                    <ImageUpload
+                      formData={formData}
+                      setFormData={setFormData}
+                      existingImage={editingEvent?.image || ""}
                     />
                   </div>
                 </div>

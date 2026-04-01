@@ -1,22 +1,55 @@
 const Event = require('../models/events');
 const Activity = require('../models/activity');
 const Student = require('../models/studentRegister');
-
+const cloudinary = require("../config/cloudnary");
+const fs = require("fs");
 // Create a new event
+// exports.createEvent = async (req, res) => {
+//   try {
+//     const event = new Event(req.body);
+//     await event.save();
+//     res.status(201).json({ 
+//       success: true, 
+//       message: 'Event created successfully',
+//       data: event 
+//     });
+//     res.json({ total: count });
+//   } catch (error) {
+//     res.status(400).json({ 
+//       success: false, 
+//       error: error.message 
+//     });
+//   }
+// };
 exports.createEvent = async (req, res) => {
   try {
+    let imageUrl = "";
+
+    //  (image upload)
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path,{folder:"event"});
+      // fs.unlinkSync(req.file.path);
+      imageUrl = result.secure_url;
+
+      // attach image to body (so your existing logic works)
+      req.body.image = imageUrl;
+    }
+    console.log(req.file);
+    console.log(req.body);
+    //  YOUR ORIGINAL CODE (UNCHANGED)
     const event = new Event(req.body);
     await event.save();
-    res.status(201).json({ 
-      success: true, 
+
+    res.status(201).json({
+      success: true,
       message: 'Event created successfully',
-      data: event 
+      data: event
     });
-    res.json({ total: count });
+
   } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
+    res.status(400).json({
+      success: false,
+      error: error.message
     });
   }
 };
@@ -45,14 +78,14 @@ exports.getAllEvents = async (req, res) => {
       events.map(async (event) => {
         const count = await Student.countDocuments({ event: event._id });
         console.log(count);
-        
+
         return {
           ...event.toObject(),
           registeredCount: count
         };
       })
     );
-     //  total number of events
+    //  total number of events
     const totalEvents = await Event.countDocuments();
 
     res.status(200).json({
@@ -74,29 +107,29 @@ exports.getEventById = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
     if (!event) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Event not found' 
+      return res.status(404).json({
+        success: false,
+        error: 'Event not found'
       });
     }
-    
+
     // Get participants count
-    const participantsCount = await Activity.countDocuments({ 
+    const participantsCount = await Activity.countDocuments({
       eventId: req.params.id,
       status: 'approved'
     });
-    
-    res.status(200).json({ 
-      success: true, 
+
+    res.status(200).json({
+      success: true,
       data: {
         ...event.toObject(),
         participantsCount
       }
     });
   } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
+    res.status(400).json({
+      success: false,
+      error: error.message
     });
   }
 };
@@ -110,20 +143,20 @@ exports.updateEvent = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!event) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Event not found' 
+      return res.status(404).json({
+        success: false,
+        error: 'Event not found'
       });
     }
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: 'Event updated successfully',
-      data: event 
+      data: event
     });
   } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
+    res.status(400).json({
+      success: false,
+      error: error.message
     });
   }
 };
@@ -133,12 +166,12 @@ exports.deleteEvent = async (req, res) => {
   try {
     const event = await Event.findByIdAndDelete(req.params.id);
     if (!event) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Event not found' 
+      return res.status(404).json({
+        success: false,
+        error: 'Event not found'
       });
     }
-    
+
     // Delete associated activities
     await Activity.deleteMany({ eventId: req.params.id });
     // Remove event reference from students
@@ -146,15 +179,15 @@ exports.deleteEvent = async (req, res) => {
       { event: req.params.id },
       { $pull: { event: req.params.id } }
     );
-    
-    res.status(200).json({ 
-      success: true, 
-      message: 'Event deleted successfully' 
+
+    res.status(200).json({
+      success: true,
+      message: 'Event deleted successfully'
     });
   } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
+    res.status(400).json({
+      success: false,
+      error: error.message
     });
   }
 };
@@ -163,15 +196,15 @@ exports.deleteEvent = async (req, res) => {
 exports.getEventsByStatus = async (req, res) => {
   try {
     const events = await Event.find({ status: req.params.status });
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       count: events.length,
-      data: events 
+      data: events
     });
   } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
+    res.status(400).json({
+      success: false,
+      error: error.message
     });
   }
 };
@@ -179,19 +212,19 @@ exports.getEventsByStatus = async (req, res) => {
 // Get upcoming events
 exports.getUpcomingEvents = async (req, res) => {
   try {
-    const events = await Event.find({ 
+    const events = await Event.find({
       date: { $gt: new Date() },
       status: 'upcoming'
     }).sort({ date: 1 });
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       count: events.length,
-      data: events 
+      data: events
     });
   } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
+    res.status(400).json({
+      success: false,
+      error: error.message
     });
   }
 };
@@ -199,20 +232,20 @@ exports.getUpcomingEvents = async (req, res) => {
 // Get event participants
 exports.getEventParticipants = async (req, res) => {
   try {
-    const activities = await Activity.find({ 
+    const activities = await Activity.find({
       eventId: req.params.id,
       status: 'approved'
     }).populate('studentId', 'name rollNo department year phoneNo');
-    
-    res.status(200).json({ 
-      success: true, 
+
+    res.status(200).json({
+      success: true,
       count: activities.length,
-      data: activities 
+      data: activities
     });
   } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
+    res.status(400).json({
+      success: false,
+      error: error.message
     });
   }
 };

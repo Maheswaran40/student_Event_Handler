@@ -29,6 +29,8 @@ app.use((req, res, next) => {
   next();
 });
 
+
+
 // Routes
 app.use('/api/students', studentRoutes);
 app.use('/api/events', eventRoutes);
