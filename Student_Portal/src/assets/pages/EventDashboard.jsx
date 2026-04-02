@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import EventCard from './EventCard';
-import { eventsData } from '../json/Event';
-
+import { Mycontext } from '../Context/Mycontext';
+// import { eventsData } from '../json/Event';
 const EventDashboard = () => {
+  const{eventsData}=useContext(Mycontext)
+  console.log("dashboard data",eventsData);
+  
   return (
     <div className="min-h-screen px-5 py-8 md:py-12 max-w-7xl mx-auto">
       {/* Header Section */}

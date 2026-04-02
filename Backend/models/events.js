@@ -47,7 +47,8 @@ const eventSchema = new mongoose.Schema({
   image:{
     type: String,
     require:[true, 'Event image is required']
-  }
+  },
+  gradientColor: { type: String, default: "from-indigo-500 to-purple-600" },
 }, {
   timestamps: true
 });

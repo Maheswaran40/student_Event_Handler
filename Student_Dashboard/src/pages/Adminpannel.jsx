@@ -49,6 +49,7 @@ const AdminPanel = () => {
     incharge: "",
     maxParticipants: "",
     image: "",
+     gradientColor: "from-indigo-500 to-purple-600",
   });
 
   // Mock users data
@@ -99,6 +100,18 @@ const AdminPanel = () => {
   //     status: "active",
   //   },
   // ];
+
+  // Create a gradient options constant at the top of your component or in a separate file
+const gradientOptions = [
+  { id: 1, name: "Indigo to Purple", value: "from-indigo-500 to-purple-600", preview: "bg-gradient-to-r from-indigo-500 to-purple-600" },
+  { id: 2, name: "Amber to Red", value: "from-amber-500 to-red-600", preview: "bg-gradient-to-r from-amber-500 to-red-600" },
+  { id: 3, name: "Emerald to Teal", value: "from-emerald-500 to-teal-600", preview: "bg-gradient-to-r from-emerald-500 to-teal-600" },
+  { id: 4, name: "Pink to Rose", value: "from-pink-500 to-rose-600", preview: "bg-gradient-to-r from-pink-500 to-rose-600" },
+  { id: 5, name: "Slate to Gray", value: "from-slate-700 to-gray-900", preview: "bg-gradient-to-r from-slate-700 to-gray-900" },
+  { id: 6, name: "Blue to Cyan", value: "from-blue-500 to-cyan-600", preview: "bg-gradient-to-r from-blue-500 to-cyan-600" },
+  { id: 7, name: "Orange to Yellow", value: "from-orange-500 to-yellow-600", preview: "bg-gradient-to-r from-orange-500 to-yellow-600" },
+  { id: 8, name: "Purple to Pink", value: "from-purple-500 to-pink-600", preview: "bg-gradient-to-r from-purple-500 to-pink-600" }
+];
 
   useEffect(() => {
     if (!isAdmin) {
@@ -174,7 +187,8 @@ const AdminPanel = () => {
         incharge: formData.incharge, // ✅ Correct field name
         maxParticipants: parseInt(formData.maxParticipants) || 10, // Convert to number
         status: "upcoming", // Optional, default is 'upcoming'
-       imageFile: formData.imageFile 
+       imageFile: formData.imageFile ,
+       gradientColor: editingEvent.gradientColor || "from-indigo-500 to-purple-600",
       };
       console.log("imageurl", formData.imageFile);
       console.log("Sending to backend:", eventDataToSend);
@@ -246,6 +260,7 @@ const AdminPanel = () => {
       incharge: event.incharge,
       maxParticipants: event.maxParticipants || "",
       image: event.image || "",
+      gradientColor: editingEvent.gradientColor || "from-indigo-500 to-purple-600",
     });
     setShowEventModal(true);
   };
@@ -994,6 +1009,44 @@ const AdminPanel = () => {
                       />
                     </div>
                   </div>
+                  {/* Gradient Color Selection */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Card Gradient Color *
+  </label>
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    {gradientOptions.map((gradient) => (
+      <button
+        key={gradient.id}
+        type="button"
+        onClick={() => setFormData({ ...formData, gradientColor: gradient.value })}
+        className={`relative rounded-lg overflow-hidden border-2 transition-all ${
+          formData.gradientColor === gradient.value
+            ? "border-indigo-500 ring-2 ring-indigo-200"
+            : "border-gray-200 hover:border-gray-300"
+        }`}
+      >
+        <div className={`h-12 ${gradient.preview}`}></div>
+        <div className="p-2 bg-white">
+          <p className="text-xs font-medium text-gray-700">{gradient.name}</p>
+        </div>
+        {formData.gradientColor === gradient.value && (
+          <div className="absolute top-1 right-1">
+            <svg className="w-4 h-4 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </div>
+        )}
+      </button>
+    ))}
+  </div>
+  {formData.gradientColor && (
+    <div className="mt-3 p-2 bg-gray-50 rounded-lg flex items-center gap-2">
+      <span className="text-sm text-gray-600">Selected preview:</span>
+      <div className={`h-6 w-24 rounded bg-gradient-to-r ${formData.gradientColor}`}></div>
+    </div>
+  )}
+</div>
                   <div>
                     <ImageUpload
                       formData={formData}
