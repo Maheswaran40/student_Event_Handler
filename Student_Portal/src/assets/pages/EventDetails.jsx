@@ -54,7 +54,7 @@ const EventDetails = () => {
     return gradientColor[Math.abs(hash) % gradientColor.length];
   };
   
-  const selectedGradient = getGradientFromId(event._id);
+ 
 
   if (!event) {
     return (
@@ -70,6 +70,8 @@ const EventDetails = () => {
       </div>
     );
   }
+
+   const selectedGradient = getGradientFromId(event._id);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-8 px-4 md:px-6">

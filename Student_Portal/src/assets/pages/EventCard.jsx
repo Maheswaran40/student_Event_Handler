@@ -33,7 +33,7 @@ const gradientColor = event.gradientColor || "from-indigo-500 to-purple-600";
             {event.title}
           </h2>
           <p className="text-sm text-indigo-500 font-medium mb-3">
-            {event.description}
+            {event.tagline}
           </p>
           <p className="text-gray-500 text-sm mb-4 flex items-center gap-1">
             <i className="fas fa-clipboard-list text-gray-400 text-xs"></i>
