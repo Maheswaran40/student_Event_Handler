@@ -172,7 +172,8 @@ export const userService = {
   getProfile: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/students/`)
-      return response.data.data // Returns array of students
+      return response.data // Returns array of students
+      
     } catch (error) {
       console.error('Error fetching students:', error)
       throw error // Re-throw to handle in component

@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import axios from "axios";
 
 const AuthContext = createContext();
 
@@ -66,13 +65,15 @@ export const AuthProvider = ({ children }) => {
   };
 
 
+
   const value = {
     user,
     login,
     logout,
     loading,
     isAuthenticated: !!user,
-    isAdmin: user?.role === "admin"
+    isAdmin: user?.role === "admin",
+    
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -35,10 +35,10 @@ const studentSchema = new mongoose.Schema({
     match: [/^[0-9]{10}$/, 'Phone number must be exactly 10 digits'],
     trim: true
   },
-  event: [{
+  event: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Event'
-  }]
+  }
 }, {
   timestamps: true
 });

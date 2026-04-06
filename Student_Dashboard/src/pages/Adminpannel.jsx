@@ -31,11 +31,14 @@ import {
 import toast from "react-hot-toast";
 import ImageUpload from "../components/ImageUpload";
 
+
+
 const AdminPanel = () => {
   const { user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
   const [users, setUsers] = useState([]);
+  const[StudentCount,SetStudentCount]=useState(0)
   const [activeTab, setActiveTab] = useState("overview");
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -55,7 +58,7 @@ const AdminPanel = () => {
 
   });
 
-console.log("users",users.length)
+// console.log("users",users.length)
 
   // Create a gradient options constant at the top of your component or in a separate file
   const gradientOptions = [
@@ -123,7 +126,8 @@ console.log("users",users.length)
       const eventsData = await eventsService.getAllEvents();
       setEvents(eventsData);
       const studentsData = await userService.getProfile();
-      // console.log("Raw API response:", studentsData);
+      SetStudentCount(studentsData.count) 
+console.log(studentsData.data)
 
       // Transform student data to match your UI expectations
       const transformedUsers = studentsData.map((student) => ({
@@ -332,6 +336,16 @@ console.log("users",users.length)
 
   const categories = ["all", ...new Set(events.map((e) => e.category))];
 
+    // event search function in dashboard admin pannel start
+
+
+  const[eventSearchData,setEventSearchData] = useState("");
+  function eventSearch(e) {
+    setEventSearchData(e.target.value);
+  }
+
+  // event search function in dashboard admin pannel end
+
   if (!isAdmin) {
     return (
       <div className="flex">
@@ -350,6 +364,9 @@ console.log("users",users.length)
       </div>
     );
   }
+
+
+  
 
   return (
     <div className="flex bg-gray-50 min-h-screen">
@@ -427,7 +444,7 @@ console.log("users",users.length)
                     <div>
                       <p className="text-gray-500 text-sm">Total registerd</p>
                       <p className="text-2xl font-bold text-gray-800 mt-1">
-                        {users.length}
+                        {StudentCount}
                       </p>
                     </div>
                     <div className="bg-purple-100 p-3 rounded-full">
@@ -483,13 +500,13 @@ console.log("users",users.length)
                             {event.title}
                           </h3>
                           <p className="text-sm text-gray-500">
-                            {event.date} • {event.location}
+                            {event.date} • <br /> {event.venue}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                          {event.attendees} attendees
+                          {event.registeredCount} attendees
                         </span>
                       </div>
                     </div>
@@ -657,6 +674,7 @@ console.log("users",users.length)
                   <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
+                    onChange={eventSearch}
                     placeholder="Search users..."
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
