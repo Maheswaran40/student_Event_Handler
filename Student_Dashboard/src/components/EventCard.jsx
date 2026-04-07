@@ -1,10 +1,13 @@
 import React from 'react'
 import { FiMapPin, FiCalendar, FiUsers } from 'react-icons/fi'
 import { format } from 'date-fns'
+import { useNavigate } from 'react-router-dom'
 
 const EventCard = ({ event, onRegister, onViewDetails }) => {
   const formattedDate = format(new Date(event.date), 'MMM dd, yyyy')
+  console.log("EventCard",event);
   
+  let navigate=useNavigate()
   return (
     <div className="card overflow-hidden hover:scale-[1.02] transition-transform duration-300">
       <div className="relative h-48 overflow-hidden">
@@ -39,13 +42,13 @@ const EventCard = ({ event, onRegister, onViewDetails }) => {
         
         <div className="flex space-x-3">
           <button
-            onClick={() => onViewDetails(event.id)}
+            onClick={() => navigate(`/events/${event._id}`)}
             className="flex-1 btn-secondary"
           >
             View Details
           </button>
           <button
-            onClick={() => onRegister(event.id)}
+            onClick={() => navigate("/register")}
             className="flex-1 btn-primary"
           >
             Register

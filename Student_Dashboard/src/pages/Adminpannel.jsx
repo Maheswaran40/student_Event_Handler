@@ -30,6 +30,8 @@ import {
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import ImageUpload from "../components/ImageUpload";
+import Dashboard from "./Dashboard";
+import RegistrationForm from "./RegistrationForm";
 
 
 
@@ -126,11 +128,11 @@ const AdminPanel = () => {
       const eventsData = await eventsService.getAllEvents();
       setEvents(eventsData);
       const studentsData = await userService.getProfile();
-      SetStudentCount(studentsData.count) 
-console.log(studentsData.data)
+      SetStudentCount(studentsData.data.count) 
+console.log("studentsData dashboard",studentsData)
 
       // Transform student data to match your UI expectations
-      const transformedUsers = studentsData.map((student) => ({
+      const transformedUsers = studentsData.data.students.map((student) => ({
         id: student._id || student.id,
         name: student.name || student.fullName,
         email: student.email,
@@ -156,71 +158,69 @@ console.log(studentsData.data)
   };
 
   const handleCreateEvent = async () => {
-    // Validate required fields
-    if (
-      !formData.title ||
-      !formData.date ||
-      !formData.venue ||
-      !formData.incharge
-    ) {
-      toast.error(
-        "Please fill in all required fields (title, date, venue, incharge)",
-      );
-      return;
+  // Validate required fields
+  if (
+    !formData.title ||
+    !formData.date ||
+    !formData.venue ||
+    !formData.incharge
+  ) {
+    toast.error(
+      "Please fill in all required fields (title, date, venue, incharge)",
+    );
+    return;
+  }
+
+  try {
+    // Combine date and time into a single Date object
+    let eventDateTime;
+    if (formData.time) {
+      eventDateTime = new Date(`${formData.date}T${formData.time}`);
+    } else {
+      eventDateTime = new Date(formData.date);
     }
 
-    try {
-      // Combine date and time into a single Date object
-      let eventDateTime;
-      if (formData.time) {
-        // Combine date and time
-        eventDateTime = new Date(`${formData.date}T${formData.time}`);
-      } else {
-        eventDateTime = new Date(formData.date);
-      }
+    // Format data to match backend schema EXACTLY
+    const eventDataToSend = {
+      title: formData.title,
+      description: formData.description,
+      date: eventDateTime,
+      venue: formData.venue,
+      incharge: formData.incharge,
+      maxParticipants: parseInt(formData.maxParticipants) || 10,
+      status: "upcoming",
+      imageFile: formData.imageFile,
+      gradientColor: formData.gradientColor || "from-indigo-500 to-purple-600", // ✅ Fixed: use formData.gradientColor
+      tagline: formData.tagline
+    };
+    
+    console.log("imageurl", formData.imageFile);
+    console.log("Sending to backend:", eventDataToSend);
 
-      // Format data to match backend schema EXACTLY
-      const eventDataToSend = {
-        title: formData.title,
-        description: formData.description,
-        date: eventDateTime, // Date with time included
-        venue: formData.venue, // ✅ Correct field name
-        incharge: formData.incharge, // ✅ Correct field name
-        maxParticipants: parseInt(formData.maxParticipants) || 10, // Convert to number
-        status: "upcoming", // Optional, default is 'upcoming'
-        imageFile: formData.imageFile,
-        gradientColor:
-          editingEvent.gradientColor || "from-indigo-500 to-purple-600",
-          tagline:formData.tagline
-      };
-      console.log("imageurl", formData.imageFile);
-      console.log("Sending to backend:", eventDataToSend);
+    // Send to API
+    const newEvent = await eventsService.createEvent(eventDataToSend);
 
-      // Send to API
-      const newEvent = await eventsService.createEvent(eventDataToSend);
+    // Update local state with the actual response from backend
+    setEvents((prev) => [...prev, newEvent]);
+    toast.success("Event created successfully!");
+    setShowEventModal(false);
+    resetForm();
+    console.log("Event created:", newEvent);
+  } catch (error) {
+    console.error("Create event error:", error);
+    console.error("Error response:", error.response?.data);
 
-      // Update local state with the actual response from backend
-      setEvents((prev) => [...prev, newEvent]);
-      toast.success("Event created successfully!");
-      setShowEventModal(false);
-      resetForm();
-      console.log("Event created:", newEvent);
-    } catch (error) {
-      console.error("Create event error:", error);
-      console.error("Error response:", error.response?.data);
-
-      // Show detailed error message
-      if (error.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else if (error.response?.data?.errors) {
-        // Handle validation errors from mongoose
-        const errors = error.response.data.errors;
-        Object.values(errors).forEach((err) => toast.error(err.message || err));
-      } else {
-        toast.error("Failed to create event. Please check all fields.");
-      }
+    // Show detailed error message
+    if (error.response?.data?.message) {
+      toast.error(error.response.data.message);
+    } else if (error.response?.data?.errors) {
+      const errors = error.response.data.errors;
+      Object.values(errors).forEach((err) => toast.error(err.message || err));
+    } else {
+      toast.error("Failed to create event. Please check all fields.");
     }
-  };
+  }
+};
 
   const handleUpdateEvent = async () => {
     try {
@@ -238,37 +238,69 @@ console.log(studentsData.data)
     }
   };
 
-  const handleDeleteEvent = async (eventId) => {
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      console.log("Deleting event with ID:", eventId);
+  // const handleDeleteEvent = async (eventId) => {
+  //   if (window.confirm("Are you sure you want to delete this event?")) {
+  //     console.log("Deleting event with ID:", eventId);
 
-      try {
-        await eventsService.deleteEvent(eventId);
-        setEvents(events.filter((event) => event.id !== eventId));
-        toast.success("Event deleted successfully!");
-      } catch (error) {
-        toast.error("Failed to delete event");
-      }
+  //     try {
+  //       await eventsService.deleteEvent(eventId);
+  //       setEvents(events.filter((event) => event._id !== eventId));
+  //       toast.success("Event deleted successfully!");
+  //     } catch (error) {
+  //       toast.error("Failed to delete event");
+  //     }
+  //   }
+  // };
+const handleDeleteEvent = async (eventId) => {
+  // First, check how many students are registered
+  try {
+    const studentsResponse = await eventsService.getEventStudents(eventId);
+    const registeredCount = studentsResponse?.count || 0;
+    
+    const confirmMessage = registeredCount > 0
+      ? `This event has ${registeredCount} registered student(s). Deleting will remove their registration. Are you sure?`
+      : "Are you sure you want to delete this event?";
+      
+    if (!window.confirm(confirmMessage)) {
+      return;
     }
-  };
+    
+    console.log("Deleting event with ID:", eventId);
+    
+    // Call your delete API
+    const response = await eventsService.deleteEvent(eventId);
+    console.log("Delete response:", response);
+    
+    // Update the UI
+    setEvents(prevEvents => prevEvents.filter(event => event._id !== eventId));
+    
+    toast.success(`Event deleted successfully! ${registeredCount > 0 ? `Removed ${registeredCount} student registration(s).` : ''}`);
+    
+    // Refresh data to update counts
+    fetchData();
+    
+  } catch (error) {
+    console.error("Delete error:", error);
+    toast.error(error.response?.data?.message || "Failed to delete event");
+  }
+};
 
-  const handleEditEvent = (event) => {
-    setEditingEvent(event);
-    setFormData({
-      title: event.title,
-      description: event.description,
-      date: event.date,
-      time: event.time,
-      venue: event.venue,
-      incharge: event.incharge,
-      maxParticipants: event.maxParticipants || "",
-      image: event.image || "",
-      gradientColor:
-        editingEvent.gradientColor || "from-indigo-500 to-purple-600",
-        tagline:event.tagline
-    });
-    setShowEventModal(true);
-  };
+ const handleEditEvent = (event) => {
+  setEditingEvent(event);
+  setFormData({
+    title: event.title,
+    description: event.description,
+    date: event.date?.split("T")[0] || "", // Format date for input
+    time: event.time || "",
+    venue: event.venue,
+    incharge: event.incharge,
+    maxParticipants: event.maxParticipants || "",
+    image: event.image || "",
+    gradientColor: event.gradientColor || "from-indigo-500 to-purple-600", // ✅ Use event.gradientColor
+    tagline: event.tagline || ""
+  });
+  setShowEventModal(true);
+};
 
   const resetForm = () => {
     setFormData({
@@ -382,14 +414,14 @@ console.log(studentsData.data)
               Manage events, users, and monitor platform activity
             </p>
           </div>
-
+             
           {/* Tabs */}
           <div className="border-b border-gray-200 mb-8">
             <div className="flex space-x-8">
               {[
                 { id: "overview", label: "Overview", icon: FiBarChart2 },
                 { id: "events", label: "Events", icon: FiCalendar },
-                { id: "users", label: "Users", icon: FiUsers },
+                { id: "users", label: "Participants", icon: FiUsers },
                 { id: "settings", label: "Settings", icon: FiSettings },
               ].map((tab) => (
                 <button
@@ -681,7 +713,7 @@ console.log(studentsData.data)
                 </div>
                 <button className="btn-primary flex items-center space-x-2">
                   <FiUserPlus />
-                  <span>Add User</span>
+                  <span>Register</span>
                 </button>
               </div>
 
@@ -1102,6 +1134,7 @@ console.log(studentsData.data)
               </div>
             </div>
           )}
+         
         </div>
       </div>
     </div>

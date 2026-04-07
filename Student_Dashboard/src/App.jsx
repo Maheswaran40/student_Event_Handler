@@ -10,6 +10,8 @@ import Profile from './pages/Profie'
 import AdminPanel from './pages/Adminpannel'
 import HeroPage from './pages/HeroPage'
 import "./style.css"
+import RegistrationForm from './pages/RegistrationForm'
+import EventDetails from './components/EventDetails'
 function App() {
 const location=useLocation()
 const hideLayout=location.pathname==="/"
@@ -24,6 +26,8 @@ const hideLayout=location.pathname==="/"
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/" element={<HeroPage/>} />
+              <Route path="/register" element={<RegistrationForm/>} />
+              <Route path="/events/:eventId" element={<EventDetails/>} />
             </Routes>
           <Toaster position="top-right" />
         </div>

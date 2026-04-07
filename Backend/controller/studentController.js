@@ -93,7 +93,8 @@ students.forEach(s => {
     res.status(200).json({
       success: true,
       count: students.length,
-      data: studentsByEvent
+      data: studentsByEvent,
+      students
     });
   } catch (error) {
     res.status(400).json({

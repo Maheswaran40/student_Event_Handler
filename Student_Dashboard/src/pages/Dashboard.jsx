@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { eventsService } from '../services/api'
+import { eventsService,userService } from '../services/api'
 import EventCard from '../components/EventCard'
 import Sidebar from '../components/Sidebar'
 import { FiTrendingUp, FiUsers, FiCalendar, FiStar } from 'react-icons/fi'
 import toast from 'react-hot-toast'
-
 const Dashboard = () => {
   const { user } = useAuth()
   const [events, setEvents] = useState([])
@@ -13,7 +12,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     totalEvents: 0,
     upcomingEvents: 0,
-    totalAttendees: 0,
+    totalregistered: 0,
     eventsAttended: 0
   })
 
@@ -24,13 +23,16 @@ const Dashboard = () => {
   const fetchEvents = async () => {
     try {
       const data = await eventsService.getAllEvents()
+      const studentsData = await userService.getProfile();
+       console.log("Dashboard",studentsData);
       setEvents(data)
       setStats({
         totalEvents: data.length,
         upcomingEvents: data.filter(e => new Date(e.date) > new Date()).length,
-        totalAttendees: data.reduce((sum, e) => sum + e.attendees, 0),
+        totalregistered: studentsData.count,
         eventsAttended: Math.floor(Math.random() * 5) // Mock data
       })
+
     } catch (error) {
       toast.error('Failed to fetch events')
     } finally {
@@ -49,7 +51,7 @@ const Dashboard = () => {
   const statCards = [
     { icon: FiCalendar, label: 'Total Events', value: stats.totalEvents, color: 'bg-blue-500' },
     { icon: FiTrendingUp, label: 'Upcoming', value: stats.upcomingEvents, color: 'bg-green-500' },
-    { icon: FiUsers, label: 'Total Attendees', value: stats.totalAttendees, color: 'bg-purple-500' },
+    { icon: FiUsers, label: 'Total Registered', value: stats.totalregistered, color: 'bg-purple-500' },
     { icon: FiStar, label: 'Events Attended', value: stats.eventsAttended, color: 'bg-yellow-500' }
   ]
 

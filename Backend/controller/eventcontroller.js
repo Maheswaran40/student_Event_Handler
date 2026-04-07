@@ -174,17 +174,21 @@ exports.deleteEvent = async (req, res) => {
 
     // Delete associated activities
     await Activity.deleteMany({ eventId: req.params.id });
-    // Remove event reference from students
-    await Student.updateMany(
-      { event: req.params.id },
-      { $pull: { event: req.params.id } }
-    );
+    
+    // ✅ THIS DELETES THE STUDENTS COMPLETELY
+    const deletedStudents = await Student.deleteMany({ event: req.params.id });
+    
+    console.log(`Deleted ${deletedStudents.deletedCount} students who registered for this event`);
 
     res.status(200).json({
       success: true,
-      message: 'Event deleted successfully'
+      message: `Event deleted successfully. ${deletedStudents.deletedCount} students were deleted.`,
+      data: {
+        studentsDeleted: deletedStudents.deletedCount
+      }
     });
   } catch (error) {
+    console.error("Delete error:", error);
     res.status(400).json({
       success: false,
       error: error.message

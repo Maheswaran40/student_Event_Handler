@@ -120,12 +120,23 @@ export const eventsService = {
   deleteEvent: async (id) => {
     try {
       const res = await axios.delete(`${EventUrl}/${id}`);
-      return res.data; // Returns success message or deleted event
+      return res.data;
     } catch (error) {
       console.error("Error deleting event:", error);
       throw error;
     }
   },
+   // Add this for checking registered students
+  getEventStudents: async (eventId) => {
+    try {
+      const res = await axios.get(`${BaseUrl}/events/${eventId}/students`);
+      return res.data;
+    } catch (error) {
+      console.error("Error fetching event students:", error);
+      return { count: 0, students: [] };
+    }
+  },
+  
    // GET event participants
   getEventParticipants: async (id) => {
     try {
@@ -172,7 +183,7 @@ export const userService = {
   getProfile: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/students/`)
-      return response.data // Returns array of students
+      return response // Returns array of students
       
     } catch (error) {
       console.error('Error fetching students:', error)

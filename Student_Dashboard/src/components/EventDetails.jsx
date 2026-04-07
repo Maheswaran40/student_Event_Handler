@@ -1,41 +1,62 @@
-import React, { useContext } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-
-import RegistrationForm from "./RegistrationForm";
-// import { eventsData } from '../json/Event';
-import { Mycontext } from "../Context/Mycontext";
+import { eventsService } from "../services/api"; // Note: named import
 
 const EventDetails = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { eventCount, eventsData } = useContext(Mycontext);
-  const event = eventsData.find((ev) => ev._id === eventId);
-  console.log("event details comp", event);
+  console.log("eventId", eventId);
+  
+  const [event, setEvent] = useState(null);
 
-  // let eventCountData=eventCount.filter((v)=>(
-  //   v.title=="lemon in the spoon"
-  // )) 
-  const showSuccessToast = (message) => {
-    const toast = document.createElement("div");
-    toast.innerText = message;
-    toast.className =
-      "fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-xl text-base font-medium z-50 transition-all duration-300";
-    document.body.appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = "0";
-      setTimeout(() => {
-        document.body.removeChild(toast);
-      }, 300);
-    }, 2000);
-  };
+  async function fetcheventData() {
+    try {
+      const events = await eventsService.getAllEvents(); // Direct array
+      console.log("Events:", events);
+      
+      const foundEvent = events.find((ev) => ev._id == eventId);
+      console.log("Found event:", foundEvent);
+      
+      setEvent(foundEvent);
+    } catch (err) {
+      console.log("Fetching error:", err);
+    }
+  }
+  
+  useEffect(() => {
+    fetcheventData();
+  }, [eventId]); // Add eventId as dependency
 
-  const handleRegistrationSuccess = (formData) => {
-    showSuccessToast(
-      `🎉 Registration successful for ${event.name}! Thank you ${formData.studentName}.`,
+  if (!event) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>Loading...</div>
+      </div>
     );
-    // You can also make an API call here to save registration data
-    console.log("Registration data:", { eventId: event.id, ...formData });
-  };
+  }
+  
+
+  // const showSuccessToast = (message) => {
+  //   const toast = document.createElement("div");
+  //   toast.innerText = message;
+  //   toast.className =
+  //     "fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-xl text-base font-medium z-50 transition-all duration-300";
+  //   document.body.appendChild(toast);
+  //   setTimeout(() => {
+  //     toast.style.opacity = "0";
+  //     setTimeout(() => {
+  //       document.body.removeChild(toast);
+  //     }, 300);
+  //   }, 2000);
+  // };
+
+  // const handleRegistrationSuccess = (formData) => {
+  //   showSuccessToast(
+  //     `🎉 Registration successful for ${event.name}! Thank you ${formData.studentName}.`,
+  //   );
+  //   // You can also make an API call here to save registration data
+  //   console.log("Registration data:", { eventId: event.id, ...formData });
+  // };
 
    const gradientColor = [
     "from-indigo-500 to-purple-600",
@@ -108,8 +129,10 @@ const EventDetails = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+
+
           {/* Rules & Regulations Section */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-12 space-y-6">
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
               <div className="flex items-center gap-3 border-b border-gray-200 pb-4 mb-4">
                 <i className="fas fa-gavel text-indigo-500 text-xl"></i>
@@ -178,14 +201,7 @@ const EventDetails = () => {
             </div>
           </div>
 
-          {/* Registration Form */}
-          <div className="lg:col-span-2">
-            <RegistrationForm
-              eventName={event.name}
-              bgGradient={selectedGradient}
-              onSuccess={handleRegistrationSuccess}
-            />
-          </div>
+      
         </div>
       </div>
     </div>
