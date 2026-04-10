@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 const EventCard = ({ event,index }) => {
 
 const gradientColor = event.gradientColor || "from-indigo-500 to-purple-600";
- 
+ console.log("event card",event)
   return (
    <>
    
@@ -18,7 +18,7 @@ const gradientColor = event.gradientColor || "from-indigo-500 to-purple-600";
         <div className="p-6 flex flex-col flex-grow">
           <div className="flex items-center justify-between mb-4">
             <div
-              className={`w-12 h-12 rounded-xl bg-gradient-to-br ${event.bgGradient} flex items-center justify-center text-white shadow-md`}
+              className={`w-12 h-12 rounded-xl bg-gradient-to-br ${event.gradientColor} flex items-center justify-center text-white shadow-md`}
             >
               {/* <i className={`${event.icon} text-xl`}></i> */}
               <img

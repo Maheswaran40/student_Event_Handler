@@ -83,6 +83,7 @@ export const eventsService = {
         dataToSend.append("incharge", eventData.incharge);
         dataToSend.append("maxParticipants", eventData.maxParticipants);
         dataToSend.append("status", eventData.status);
+        dataToSend.append("gradientColor", eventData.gradientColor);
 
         //  file
         dataToSend.append("image", eventData.imageFile);

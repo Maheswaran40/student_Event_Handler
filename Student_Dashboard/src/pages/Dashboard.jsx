@@ -29,8 +29,8 @@ const Dashboard = () => {
       setStats({
         totalEvents: data.length,
         upcomingEvents: data.filter(e => new Date(e.date) > new Date()).length,
-        totalregistered: studentsData.count,
-        eventsAttended: Math.floor(Math.random() * 5) // Mock data
+        totalregistered: studentsData.data.count || 0,
+        eventsAttended: 0 // Mock data
       })
 
     } catch (error) {

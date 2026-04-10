@@ -1,6 +1,7 @@
 const Student = require('../models/studentRegister');
 const Activity = require('../models/activity');
 const Event = require("../models/events")
+const axios = require("axios");
 // Create a new student
 exports.createStudent = async (req, res) => {
   try {
@@ -16,7 +17,7 @@ exports.createStudent = async (req, res) => {
     // Check current participants count for this event
     const currentParticipants = await Student.countDocuments({ event });
 
-    if (currentParticipants >= event.maxParticipants) {
+    if (currentParticipants >= eventData.maxParticipants) {
       return res.status(409).json({
         success: false,
         error: 'Registration closed',
@@ -29,6 +30,26 @@ exports.createStudent = async (req, res) => {
 
     const student = new Student({ ...studentData, event });
     await student.save();
+
+ //  ===== (PABBLY WEBHOOK CALL) =====
+    try {
+      await axios.post(process.env.PABBLY, {
+        name: student.name,
+        phoneNo: student.phoneNo,
+        department: student.department,
+        year: student.year,
+        rollNo: student.rollNo,
+        event: eventData.title || "Event"
+      });
+    } catch (webhookError) {
+      console.error("Pabbly Webhook Error:", webhookError.message);
+      // ❗ Don't break main flow if webhook fails
+    }
+    //  ===== END BLOCK =====
+
+
+
+
     res.status(201).json({
       success: true,
       message: 'Student created successfully',

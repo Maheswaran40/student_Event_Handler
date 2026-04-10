@@ -5,11 +5,11 @@ import { Mycontext } from "../Context/Mycontext";
 
 const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
   let url = "http://localhost:5000/api/students/";
-  let eventUrl = "http://localhost:5000/api/events/upcoming";
-   const {fetchEvents}=useContext(Mycontext)
-  const [events, setEvents] = useState([]);
+   const {fetchEvents,eventsData}=useContext(Mycontext)
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  console.log("eventsdata state",eventsData);
+  
   
   const [formData, setFormData] = useState({
     name: "",
@@ -20,31 +20,15 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
     phoneNo: "",
   });
 
+// ✅ Get selected event
+  const selectedEvent = eventsData.find(
+    (ev) => ev._id === formData.event
+  );
 
-  
-  // Fetch events on component mount
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const res = await axios.get(eventUrl);
-        
-        // Extract the data array from the response
-        // Since response has { success: true, count: 1, data: [...] }
-        const eventsData = res.data.data || []; // Get data array or empty array
-        setEvents(eventsData);
-      } catch (err) {
-        console.error("Error fetching events:", err);
-        setEvents([]); // Set empty array on error
-      }
-    };
-
-    fetchEvents();
-  }, []);
-
-
-
-
-
+   // ✅ Check if event is full
+  const isFull =
+    selectedEvent &&
+    (selectedEvent.registeredCount || 0) >= selectedEvent.maxParticipants;
 
   const departmentOptions = [
     "Computer Science",
@@ -104,8 +88,13 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
         phoneNo: "",
       });
     } catch (error) {
-      alert(error.response?.data?.error || "Something went wrong");
-    } finally {
+      if (error.response?.status === 409) {
+        alert("Registration closed ❌ (Event Full)");
+      } else {
+        alert(error.response?.data?.error || "Something went wrong");
+      }
+    }
+    finally {
       setLoading(false);
     }
   };
@@ -190,14 +179,15 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
               name="event"
               value={formData.event}
               onChange={handleChange}
+              disabled={loading || isFull}
               className={`w-83 pl-9 pr-3 py-2.5 border ${
                 errors.event ? "border-red-400" : "border-gray-300"
               } rounded-xl focus:ring-2 focus:ring-indigo-300 bg-white appearance-none`}
             >
               <option value="" disabled>
-                {events.length === 0 ? "Loading events..." : "Select Event"}
+                {eventsData.length === 0 ? "Loading events..." : "Select Event"}
               </option>
-              {events.map((event) => (
+              {eventsData.map((event) => (
                 <option key={event._id} value={event._id}>
                   {event.title} 
                 </option>
@@ -208,7 +198,7 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
           {errors.event && (
             <p className="text-red-500 text-xs mt-1">{errors.event}</p>
           )}
-          {events.length === 0 && !errors.event && (
+          {eventsData.length === 0 && !errors.event && (
             <p className="text-yellow-500 text-xs mt-1 flex items-center gap-1">
               <i className="fas fa-spinner fa-spin"></i> Loading events...
             </p>
