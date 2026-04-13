@@ -15,6 +15,36 @@ const Login = () => {
     setLoading(false)
   }
 
+  // In your login component
+const handleLogin = async (email, password) => {
+  try {
+    const response = await axios.post('http://localhost:5000/api/auth/login', {
+      email,
+      password
+    });
+    
+    if (response.data.success) {
+      const { token, ...userData } = response.data.data;
+      
+      // Store token and user data
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Set default axios header
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // Redirect based on role
+      if (userData.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    toast.error(error.response?.data?.error || 'Login failed');
+  }
+};
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-blue-100">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 animate-fade-in">

@@ -12,6 +12,7 @@ import HeroPage from './pages/HeroPage'
 import "./style.css"
 import RegistrationForm from './pages/RegistrationForm'
 import EventDetails from './components/EventDetails'
+import ActivityPage from './pages/ActivityPage'
 function App() {
 const location=useLocation()
 const hideLayout=location.pathname==="/"
@@ -24,6 +25,7 @@ const hideLayout=location.pathname==="/"
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/events" element={<Events />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/Activity" element={<ActivityPage />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/" element={<HeroPage/>} />
               <Route path="/register" element={<RegistrationForm/>} />

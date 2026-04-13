@@ -8,7 +8,8 @@ dotenv.config();
 // Import routes
 const studentRoutes = require('./routes/studentroutes');
 const eventRoutes = require('./routes/eventroutes');
-const activityRoutes = require('./routes/activityRoutes');
+const activityRoutes = require('./routes/activityroutes');
+const authroutes = require('./routes/authroutes');
 
 // Initialize express app
 const app = express();
@@ -35,7 +36,7 @@ app.use((req, res, next) => {
 app.use('/api/students', studentRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/activities', activityRoutes);
-
+app.use('/api',authroutes)
 // Home route
 app.get('/', (req, res) => {
   res.json({

@@ -47,12 +47,7 @@ const EventCard = ({ event, onRegister, onViewDetails }) => {
           >
             View Details
           </button>
-          <button
-            onClick={() => navigate("/register")}
-            className="flex-1 btn-primary"
-          >
-            Register
-          </button>
+       
         </div>
       </div>
     </div>

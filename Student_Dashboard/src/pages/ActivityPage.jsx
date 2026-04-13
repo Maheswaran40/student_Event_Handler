@@ -11,17 +11,18 @@ import {
   ClockIcon,
   EyeIcon,
   ArrowPathIcon,
+  AcademicCapIcon,
+  MapPinIcon,
+  DocumentTextIcon,
   PlusIcon,
+  // FilterIcon,
   MagnifyingGlassIcon,
-  FlagIcon,
-  DocumentTextIcon
+  CloudArrowUpIcon,
+  FlagIcon
 } from '@heroicons/react/24/outline';
 import Sidebar from '../components/Sidebar';
 
-// Import services from your existing API
-import { eventsService, userService, activitiesService } from '../services/api';
-
-const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
+const ActivityPage = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState(null);
@@ -31,9 +32,9 @@ const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [selectedActivityForReassign, setSelectedActivityForReassign] = useState(null);
-  const [users, setUsers] = useState(sharedUsers || []);
-  const [events, setEvents] = useState(sharedEvents || []);
-  const [currentUser, setCurrentUser] = useState(propUser);
+  const [users, setUsers] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     completed: 0,
@@ -51,13 +52,53 @@ const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
     },
   });
 
-  // Add auth token to requests
-  const token = localStorage.getItem('token');
-  if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  }
+  // Get current user from auth context
+  const getCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        const response = await api.get('/auth/me');
+        if (response.data.success) {
+          setCurrentUser(response.data.data);
+          return response.data.data;
+        }
+      }
+    } catch (error) {
+      console.error('Error getting current user:', error);
+    }
+    // Fallback demo user - replace with your actual auth
+    const demoUser = { id: 'admin1', name: 'Admin User', role: 'admin' };
+    setCurrentUser(demoUser);
+    return demoUser;
+  };
 
-  // Fetch activities
+  // Fetch existing users (volunteers) and events
+  const fetchUsersAndEvents = async () => {
+    try {
+      const [usersRes, eventsRes] = await Promise.all([
+        api.get('/users?role=volunteer'),
+        api.get('/events')
+      ]);
+      if (usersRes.data.success) setUsers(usersRes.data.data);
+      if (eventsRes.data.success) setEvents(eventsRes.data.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // Demo fallback data
+      setUsers([
+        { id: 'vol1', name: 'Emma Watson', role: 'volunteer', email: 'emma@example.com', points: 240 },
+        { id: 'vol2', name: 'Liam Chen', role: 'volunteer', email: 'liam@example.com', points: 185 },
+        { id: 'vol3', name: 'Sofia Ramirez', role: 'volunteer', email: 'sofia@example.com', points: 312 }
+      ]);
+      setEvents([
+        { id: 'evt1', name: 'Annual Tech Symposium', date: '2025-05-10', venue: 'Main Auditorium' },
+        { id: 'evt2', name: 'Beach Cleanup Drive', date: '2025-05-18', venue: 'Sunset Beach' },
+        { id: 'evt3', name: 'Charity Gala Night', date: '2025-06-05', venue: 'Grand Ballroom' }
+      ]);
+    }
+  };
+
+  // Fetch activities based on user role
   const fetchActivities = async () => {
     try {
       setLoading(true);
@@ -65,18 +106,10 @@ const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
       if (response.data.success) {
         setActivities(response.data.data);
         calculateStats(response.data.data);
-      } else if (activitiesService) {
-        // Fallback to your existing service
-        const data = await activitiesService.getAllActivities();
-        setActivities(data);
-        calculateStats(data);
       }
     } catch (error) {
       console.error('Error fetching activities:', error);
       toast.error('Failed to fetch activities');
-      // Use mock data for demo if API fails
-      setActivities(getMockActivities());
-      calculateStats(getMockActivities());
     } finally {
       setLoading(false);
     }
@@ -100,7 +133,7 @@ const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
     });
   };
 
-  // Create new activity
+  // Create new activity (Admin only)
   const createActivity = async (activityData) => {
     try {
       const response = await api.post('/activities', activityData);
@@ -117,7 +150,7 @@ const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
     }
   };
 
-  // Update activity
+  // Update activity (status, reassign, points)
   const updateActivity = async (id, updates) => {
     try {
       const response = await api.put(`/activities/${id}`, updates);
@@ -135,7 +168,7 @@ const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
     }
   };
 
-  // Mark as completed with proof
+  // Volunteer marks activity as completed with proof
   const markAsCompleted = async (id, proofUrl) => {
     try {
       const response = await api.patch(`/activities/${id}/complete`, { proof: proofUrl });
@@ -150,7 +183,7 @@ const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
     }
   };
 
-  // Delete activity
+  // Delete activity (Admin only)
   const deleteActivity = async (id) => {
     if (window.confirm('Are you sure you want to delete this activity?')) {
       try {
@@ -168,61 +201,21 @@ const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
     }
   };
 
-  // Mock data for initial demo
-  const getMockActivities = () => {
-    return [
-      {
-        id: 'act1',
-        title: 'Welcome Desk Setup',
-        description: 'Arrange registration booth and welcome kits',
-        eventId: events[0]?._id || events[0]?.id,
-        eventName: events[0]?.title || 'Tech Symposium',
-        assignedTo: users[0],
-        status: 'approved',
-        priority: 'High',
-        deadline: '2025-05-09',
-        proof: 'https://picsum.photos/id/20/200/150',
-        points: 50,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'act2',
-        title: 'Volunteer Coordination',
-        description: 'Manage volunteer shifts and duties',
-        eventId: events[1]?._id || events[1]?.id,
-        eventName: events[1]?.title || 'Beach Cleanup',
-        assignedTo: users[1],
-        status: 'pending',
-        priority: 'High',
-        deadline: '2025-05-15',
-        points: 30,
-        createdAt: new Date().toISOString()
-      }
-    ];
-  };
-
   useEffect(() => {
-    // Use shared data if provided, otherwise fetch
-    if (sharedEvents && sharedEvents.length > 0) {
-      setEvents(sharedEvents);
-    }
-    if (sharedUsers && sharedUsers.length > 0) {
-      setUsers(sharedUsers.filter(u => u.role === 'volunteer' || u.role === 'student'));
-    }
-    if (propUser) {
-      setCurrentUser(propUser);
-    }
-    fetchActivities();
-  }, [sharedEvents, sharedUsers, propUser]);
+    const init = async () => {
+      await getCurrentUser();
+      await fetchUsersAndEvents();
+      await fetchActivities();
+    };
+    init();
+  }, []);
 
   // Filter activities
   const filteredActivities = activities.filter(activity => {
-    const eventIdMatch = filterEvent ? 
-      (activity.eventId === filterEvent || activity.eventId?._id === filterEvent) : true;
-    const statusMatch = filterStatus ? activity.status === filterStatus : true;
-    const searchMatch = searchTitle ? 
-      activity.title?.toLowerCase().includes(searchTitle.toLowerCase()) : true;
-    return eventIdMatch && statusMatch && searchMatch;
+    if (filterEvent && activity.eventId?._id !== filterEvent && activity.eventId !== filterEvent) return false;
+    if (filterStatus && activity.status !== filterStatus) return false;
+    if (searchTitle && !activity.title?.toLowerCase().includes(searchTitle.toLowerCase())) return false;
+    return true;
   });
 
   const isAdmin = currentUser?.role === 'admin';
@@ -264,295 +257,298 @@ const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <Toaster position="top-right" />
-      
-      {/* Header */}
-      <div className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-6 py-6">
-          <div className="flex flex-wrap justify-between items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Activity Management
-              </h1>
-              <p className="mt-1 text-sm text-gray-500">
-                {isAdmin ? 'Manage and assign activities to volunteers' : 'View and manage your assigned activities'}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              {isAdmin && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md"
-                >
-                  <PlusIcon className="w-5 h-5" />
-                  Create Activity
-                </button>
-              )}
-              <button
-                onClick={fetchActivities}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-              >
-                <ArrowPathIcon className="w-5 h-5" />
-                Refresh
-              </button>
-            </div>
-          </div>
-        </div>
+    <>
+      <div className="lg:flex hidden">
+        <Sidebar />
       </div>
+   
+      <div className="min-h-screen lg:ml-64 p-2 bg-gradient-to-br from-gray-50 to-gray-100">
+        <Toaster position="top-right" />
+        
+        {/* Header */}
+        <div className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex flex-wrap justify-between items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Activity Management
+                </h1>
+                <p className="mt-1 text-sm text-gray-500">
+                  {isAdmin ? 'Manage and assign activities to volunteers' : 'View and manage your assigned activities'}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md"
+                  >
+                    <PlusIcon className="w-5 h-5" />
+                    Create Activity
+                  </button>
+                )}
+                <button
+                  onClick={fetchActivities}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                >
+                  <ArrowPathIcon className="w-5 h-5" />
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      {/* Main Content */}
-      <div className="px-6 py-8">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Total Activities</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Pending</p>
-            <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Completed</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Approved</p>
-            <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-red-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Cancelled</p>
-            <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Total Points</p>
-            <p className="text-2xl font-bold text-purple-600">{stats.totalPoints}</p>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by activity title..."
-                value={searchTitle}
-                onChange={(e) => setSearchTitle(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
+              <p className="text-xs text-gray-500">Total Activities</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
-            
-            <select
-              value={filterEvent}
-              onChange={(e) => setFilterEvent(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Events</option>
-              {events.map(event => (
-                <option key={event._id || event.id} value={event._id || event.id}>
-                  {event.title || event.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-              <option value="approved">Approved</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
+              <p className="text-xs text-gray-500">Pending</p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
+              <p className="text-xs text-gray-500">Completed</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
+              <p className="text-xs text-gray-500">Approved</p>
+              <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-red-500 hover:shadow-lg transition-shadow">
+              <p className="text-xs text-gray-500">Cancelled</p>
+              <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
+              <p className="text-xs text-gray-500">Total Points</p>
+              <p className="text-2xl font-bold text-purple-600">{stats.totalPoints}</p>
+            </div>
           </div>
-        </div>
 
-        {/* Activities Table */}
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          {/* Filters */}
+          <div className="mt-8 bg-white rounded-xl shadow-sm p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by activity title..."
+                  value={searchTitle}
+                  onChange={(e) => setSearchTitle(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <select
+                value={filterEvent}
+                onChange={(e) => setFilterEvent(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Events</option>
+                {events.map(event => (
+                  <option key={event._id || event.id} value={event._id || event.id}>
+                    {event.name || event.title}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+                <option value="approved">Approved</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
           </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredActivities.map((activity) => (
-                    <tr key={activity._id || activity.id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{activity.title}</div>
-                        {activity.description && (
-                          <div className="text-xs text-gray-500 truncate max-w-xs">{activity.description}</div>
-                        )}
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {activity.eventId?.title || activity.eventId?.name || activity.eventName || 'N/A'}
-                        </div>
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <UserIcon className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-900">
-                            {activity.assignedTo?.name || 'Unassigned'}
-                          </span>
-                        </div>
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={activity.status} />
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <PriorityBadge priority={activity.priority} />
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <CalendarIcon className="w-4 h-4 mr-1" />
-                          {activity.deadline ? new Date(activity.deadline).toLocaleDateString() : 'No deadline'}
-                        </div>
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <TrophyIcon className="w-4 h-4 text-yellow-500 mr-1" />
-                          <span className="text-sm font-semibold text-gray-900">{activity.points || 0}</span>
-                        </div>
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            onClick={() => setSelectedActivity(activity)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
-                            title="View Details"
-                          >
-                            <EyeIcon className="w-5 h-5" />
-                          </button>
-                          
-                          {isAdmin ? (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setSelectedActivityForReassign(activity);
-                                  setShowReassignModal(true);
-                                }}
-                                className="p-1 text-purple-600 hover:bg-purple-50 rounded transition"
-                                title="Reassign Volunteer"
-                              >
-                                <UserIcon className="w-5 h-5" />
-                              </button>
-                              {activity.status === 'completed' && (
-                                <>
-                                  <button
-                                    onClick={() => updateActivity(activity._id || activity.id, { status: 'approved' })}
-                                    className="p-1 text-green-600 hover:bg-green-50 rounded transition"
-                                    title="Approve"
-                                  >
-                                    <CheckCircleIcon className="w-5 h-5" />
-                                  </button>
-                                  <button
-                                    onClick={() => updateActivity(activity._id || activity.id, { status: 'cancelled', remarks: 'Rejected by admin' })}
-                                    className="p-1 text-red-600 hover:bg-red-50 rounded transition"
-                                    title="Reject"
-                                  >
-                                    <XCircleIcon className="w-5 h-5" />
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                onClick={() => deleteActivity(activity._id || activity.id)}
-                                className="p-1 text-red-600 hover:bg-red-50 rounded transition"
-                                title="Delete"
-                              >
-                                <XCircleIcon className="w-5 h-5" />
-                              </button>
-                            </>
-                          ) : (
-                            activity.status === 'pending' && activity.assignedTo?._id === currentUser?.id && (
-                              <button
-                                onClick={() => {
-                                  const proofUrl = prompt('Enter proof URL (image link):');
-                                  if (proofUrl) markAsCompleted(activity._id || activity.id, proofUrl);
-                                }}
-                                className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
-                                title="Mark as Completed"
-                              >
-                                <CheckCircleIcon className="w-5 h-5" />
-                              </button>
-                            )
-                          )}
-                        </div>
-                       </td>
+
+          {/* Activities Table */}
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="mt-6 bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredActivities.length === 0 && (
-                <div className="text-center py-12">
-                  <DocumentTextIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No activities found</p>
-                </div>
-              )}
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredActivities.map((activity) => (
+                      <tr key={activity._id || activity.id} className="hover:bg-gray-50 transition">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900">{activity.title}</div>
+                          {activity.description && (
+                            <div className="text-xs text-gray-500 truncate max-w-xs">{activity.description}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{activity.eventId?.name || activity.eventId?.title || 'N/A'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <UserIcon className="w-4 h-4 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-900">{activity.assignedTo?.name || 'Unassigned'}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <StatusBadge status={activity.status} />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <PriorityBadge priority={activity.priority} />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-gray-500">
+                            <CalendarIcon className="w-4 h-4 mr-1" />
+                            {activity.deadline ? new Date(activity.deadline).toLocaleDateString() : 'No deadline'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <TrophyIcon className="w-4 h-4 text-yellow-500 mr-1" />
+                            <span className="text-sm font-semibold text-gray-900">{activity.points || 0}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => setSelectedActivity(activity)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                              title="View Details"
+                            >
+                              <EyeIcon className="w-5 h-5" />
+                            </button>
+                            
+                            {isAdmin ? (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setSelectedActivityForReassign(activity);
+                                    setShowReassignModal(true);
+                                  }}
+                                  className="p-1 text-purple-600 hover:bg-purple-50 rounded transition"
+                                  title="Reassign Volunteer"
+                                >
+                                  <UserIcon className="w-5 h-5" />
+                                </button>
+                                {activity.status === 'completed' && (
+                                  <>
+                                    <button
+                                      onClick={() => updateActivity(activity._id || activity.id, { status: 'approved' })}
+                                      className="p-1 text-green-600 hover:bg-green-50 rounded transition"
+                                      title="Approve"
+                                    >
+                                      <CheckCircleIcon className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                      onClick={() => updateActivity(activity._id || activity.id, { status: 'cancelled', remarks: 'Rejected by admin' })}
+                                      className="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                                      title="Reject"
+                                    >
+                                      <XCircleIcon className="w-5 h-5" />
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  onClick={() => deleteActivity(activity._id || activity.id)}
+                                  className="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                                  title="Delete"
+                                >
+                                  <XCircleIcon className="w-5 h-5" />
+                                </button>
+                              </>
+                            ) : (
+                              activity.status === 'pending' && activity.assignedTo?._id === currentUser?.id && (
+                                <button
+                                  onClick={() => {
+                                    const proofUrl = prompt('Enter proof URL (image link):');
+                                    if (proofUrl) markAsCompleted(activity._id || activity.id, proofUrl);
+                                  }}
+                                  className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                                  title="Mark as Completed"
+                                >
+                                  <CheckCircleIcon className="w-5 h-5" />
+                                </button>
+                              )
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredActivities.length === 0 && (
+                  <div className="text-center py-12">
+                    <DocumentTextIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No activities found</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+        </div>
+
+        {/* Create Activity Modal */}
+        {showCreateModal && (
+          <CreateActivityModal
+            events={events}
+            users={users.filter(u => u.role === 'volunteer')}
+            onClose={() => setShowCreateModal(false)}
+            onSubmit={createActivity}
+          />
+        )}
+
+        {/* Reassign Modal */}
+        {showReassignModal && selectedActivityForReassign && (
+          <ReassignModal
+            activity={selectedActivityForReassign}
+            users={users.filter(u => u.role === 'volunteer')}
+            onClose={() => {
+              setShowReassignModal(false);
+              setSelectedActivityForReassign(null);
+            }}
+            onReassign={async (activityId, newVolunteerId) => {
+                  await updateActivity(activityId, { assignedTo: newVolunteerId });
+                  setShowReassignModal(false);
+                  setSelectedActivityForReassign(null);
+                }}
+          />
+        )}
+
+        {/* Activity Details Modal */}
+        {selectedActivity && (
+          <ActivityDetailsModal
+            activity={selectedActivity}
+            currentUser={currentUser}
+            users={users}
+            onClose={() => setSelectedActivity(null)}
+            onUpdate={updateActivity}
+            onMarkComplete={markAsCompleted}
+          />
         )}
       </div>
-
-      {/* Modals - Keep your existing modal components here */}
-      {showCreateModal && (
-        <CreateActivityModal
-          events={events}
-          users={users.filter(u => u.role === 'volunteer' || u.role === 'student')}
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={createActivity}
-        />
-      )}
-
-      {showReassignModal && selectedActivityForReassign && (
-        <ReassignModal
-          activity={selectedActivityForReassign}
-          users={users.filter(u => u.role === 'volunteer' || u.role === 'student')}
-          onClose={() => {
-            setShowReassignModal(false);
-            setSelectedActivityForReassign(null);
-          }}
-          onReassign={async (activityId, newVolunteerId) => {
-            await updateActivity(activityId, { assignedTo: newVolunteerId });
-            setShowReassignModal(false);
-            setSelectedActivityForReassign(null);
-          }}
-        />
-      )}
-
-      {selectedActivity && (
-        <ActivityDetailsModal
-          activity={selectedActivity}
-          currentUser={currentUser}
-          users={users}
-          onClose={() => setSelectedActivity(null)}
-          onUpdate={updateActivity}
-          onMarkComplete={markAsCompleted}
-        />
-      )}
-    </div>
+    </>
   );
 };
 
-// Modal Components (same as before, keep them here)
+// Create Activity Modal Component
 const CreateActivityModal = ({ events, users, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -623,7 +619,7 @@ const CreateActivityModal = ({ events, users, onClose, onSubmit }) => {
               <option value="">Select Event</option>
               {events.map(event => (
                 <option key={event._id || event.id} value={event._id || event.id}>
-                  {event.title || event.name}
+                  {event.name || event.title}
                 </option>
               ))}
             </select>
@@ -704,6 +700,7 @@ const CreateActivityModal = ({ events, users, onClose, onSubmit }) => {
   );
 };
 
+// Reassign Modal Component
 const ReassignModal = ({ activity, users, onClose, onReassign }) => {
   const [selectedVolunteer, setSelectedVolunteer] = useState('');
   const [loading, setLoading] = useState(false);
@@ -744,7 +741,7 @@ const ReassignModal = ({ activity, users, onClose, onReassign }) => {
               <option value="">Select Volunteer</option>
               {users.map(user => (
                 <option key={user._id || user.id} value={user._id || user.id}>
-                  {user.name} - {user.email}
+                  {user.name} - Current Points: {user.points || 0}
                 </option>
               ))}
             </select>
@@ -772,9 +769,11 @@ const ReassignModal = ({ activity, users, onClose, onReassign }) => {
   );
 };
 
+// Activity Details Modal Component
 const ActivityDetailsModal = ({ activity, currentUser, users, onClose, onUpdate, onMarkComplete }) => {
   const [points, setPoints] = useState(activity.points || 0);
   const [remarks, setRemarks] = useState(activity.remarks || '');
+  const [proof, setProof] = useState(activity.proof || '');
   const isAdmin = currentUser?.role === 'admin';
   const isAssignedToMe = activity.assignedTo?._id === currentUser?.id || activity.assignedTo === currentUser?.id;
 
@@ -789,7 +788,7 @@ const ActivityDetailsModal = ({ activity, currentUser, users, onClose, onUpdate,
   };
 
   const handleCompleteWithProof = async () => {
-    const proofUrl = prompt('Enter proof URL (image link):', activity.proof || '');
+    const proofUrl = prompt('Enter proof URL (image link):', proof);
     if (proofUrl) {
       await onMarkComplete(activity._id || activity.id, proofUrl);
     }
@@ -816,9 +815,7 @@ const ActivityDetailsModal = ({ activity, currentUser, users, onClose, onUpdate,
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-500">Event</label>
-              <p className="mt-1 text-sm font-medium text-gray-900">
-                {activity.eventId?.title || activity.eventId?.name || activity.eventName}
-              </p>
+              <p className="mt-1 text-sm font-medium text-gray-900">{activity.eventId?.name || activity.eventId?.title}</p>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500">Assigned To</label>

@@ -1,0 +1,338 @@
+// services/api.js
+import axios from 'axios'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// Add token to requests if it exists
+api.interceptors.request.use(
+  (config) => {
+    const user = localStorage.getItem('user')
+    if (user) {
+      const token = JSON.parse(user).token
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+const EventUrl = "http://localhost:5000/api/events"
+const ActivityUrl = "http://localhost:5000/api/activities"
+
+export const eventsService = {
+  getAllEvents: async () => {
+    try {
+      const res = await axios.get(EventUrl);
+      return res.data.data;
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      return [];
+    }
+  },
+
+  getEventById: async (id) => {
+    try {
+      const res = await axios.get(`${EventUrl}/${id}`);
+      return res.data.data;
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      return null;
+    }
+  },
+  
+  createEvent: async (eventData) => {
+    try {
+      let dataToSend;
+
+      if (eventData.imageFile) {
+        dataToSend = new FormData();
+        dataToSend.append("title", eventData.title);
+        dataToSend.append("description", eventData.description);
+        dataToSend.append("date", eventData.date);
+        dataToSend.append("venue", eventData.venue);
+        dataToSend.append("incharge", eventData.incharge);
+        dataToSend.append("maxParticipants", eventData.maxParticipants);
+        dataToSend.append("status", eventData.status);
+        dataToSend.append("gradientColor", eventData.gradientColor);
+        dataToSend.append("tagline", eventData.tagline || "");
+        dataToSend.append("image", eventData.imageFile);
+      } else {
+        dataToSend = eventData;
+      }
+
+      const res = await axios.post(EventUrl, dataToSend, {
+        headers: eventData.imageFile
+          ? { "Content-Type": "multipart/form-data" }
+          : {},
+      });
+
+      return res.data.data;
+    } catch (error) {
+      console.error("Error creating event:", error);
+      throw error;
+    }
+  },
+  
+  updateEvent: async (id, eventData) => {
+    try {
+      const res = await axios.put(`${EventUrl}/${id}`, eventData);
+      return res.data.data;
+    } catch (error) {
+      console.error("Error updating event:", error);
+      throw error;
+    }
+  },
+
+  deleteEvent: async (id) => {
+    try {
+      const res = await axios.delete(`${EventUrl}/${id}`);
+      return res.data;
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      throw error;
+    }
+  },
+  
+  getEventStudents: async (eventId) => {
+    try {
+      const res = await axios.get(`${EventUrl}/${eventId}/students`);
+      return res.data;
+    } catch (error) {
+      console.error("Error fetching event students:", error);
+      return { count: 0, students: [] };
+    }
+  },
+  
+  getEventParticipants: async (id) => {
+    try {
+      const res = await axios.get(`${EventUrl}/${id}/participants`);
+      return res.data.data;
+    } catch (error) {
+      console.error("Error fetching participants:", error);
+      return [];
+    }
+  },
+  
+  getEventsByStatus: async (status) => {
+    try {
+      const res = await axios.get(`${EventUrl}/status/${status}`);
+      return res.data.data;
+    } catch (error) {
+      console.error(`Error fetching ${status} events:`, error);
+      return [];
+    }
+  }
+}
+
+export const userService = {
+  getProfile: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/students/`)
+      return response
+    } catch (error) {
+      console.error('Error fetching students:', error)
+      throw error
+    }
+  },
+  
+  getStudentById: async (id) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/students/${id}`)
+      return response.data
+    } catch (error) {
+      console.error('Error fetching student:', error)
+      throw error
+    }
+  },
+  
+  updateProfile: async (profileData) => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/students/${profileData.id}`, profileData)
+      return response.data
+    } catch (error) {
+      console.error('Error updating student:', error)
+      throw error
+    }
+  },
+  
+  getVolunteers: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/users?role=volunteer`)
+      return response.data
+    } catch (error) {
+      console.error('Error fetching volunteers:', error)
+      // Return empty array if endpoint doesn't exist yet
+      return { data: [] }
+    }
+  }
+}
+
+// NEW: Activities Service
+export const activitiesService = {
+  // Get all activities (admin gets all, volunteer gets only assigned)
+  getAllActivities: async () => {
+    try {
+      const response = await api.get('/activities');
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+      throw error;
+    }
+  },
+
+  // Get single activity by ID
+  getActivityById: async (id) => {
+    try {
+      const response = await api.get(`/activities/${id}`);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error fetching activity:", error);
+      throw error;
+    }
+  },
+
+  // Create new activity (admin only)
+  createActivity: async (activityData) => {
+    try {
+      const response = await api.post('/activities', activityData);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error creating activity:", error);
+      throw error;
+    }
+  },
+
+  // Update activity (admin: full update, volunteer: status only)
+  updateActivity: async (id, updates) => {
+    try {
+      const response = await api.put(`/activities/${id}`, updates);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error updating activity:", error);
+      throw error;
+    }
+  },
+
+  // Delete activity (admin only)
+  deleteActivity: async (id) => {
+    try {
+      const response = await api.delete(`/activities/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting activity:", error);
+      throw error;
+    }
+  },
+
+  // Mark activity as completed with proof (volunteer)
+  completeActivity: async (id, proofData) => {
+    try {
+      const response = await api.patch(`/activities/${id}/complete`, proofData);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error completing activity:", error);
+      throw error;
+    }
+  },
+
+  // Approve activity (admin)
+  approveActivity: async (id, remarks) => {
+    try {
+      const response = await api.patch(`/activities/${id}/approve`, { remarks });
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error approving activity:", error);
+      throw error;
+    }
+  },
+
+  // Reject activity (admin)
+  rejectActivity: async (id, remarks) => {
+    try {
+      const response = await api.patch(`/activities/${id}/reject`, { remarks });
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error rejecting activity:", error);
+      throw error;
+    }
+  },
+
+  // Update points for activity (admin)
+  updatePoints: async (id, points) => {
+    try {
+      const response = await api.patch(`/activities/${id}/points`, { points });
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error updating points:", error);
+      throw error;
+    }
+  },
+
+  // Reassign activity to another volunteer (admin)
+  reassignActivity: async (id, volunteerId) => {
+    try {
+      const response = await api.patch(`/activities/${id}/reassign`, { assignedTo: volunteerId });
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error reassigning activity:", error);
+      throw error;
+    }
+  },
+
+  // Get activities by status
+  getActivitiesByStatus: async (status) => {
+    try {
+      const response = await api.get(`/activities/status/${status}`);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error(`Error fetching ${status} activities:`, error);
+      throw error;
+    }
+  },
+
+  // Get activities by event
+  getActivitiesByEvent: async (eventId) => {
+    try {
+      const response = await api.get(`/activities/event/${eventId}`);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error fetching activities by event:", error);
+      throw error;
+    }
+  },
+
+  // Get activities by volunteer
+  getActivitiesByVolunteer: async (volunteerId) => {
+    try {
+      const response = await api.get(`/activities/volunteer/${volunteerId}`);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error fetching activities by volunteer:", error);
+      throw error;
+    }
+  },
+
+  // Get statistics
+  getStatistics: async () => {
+    try {
+      const response = await api.get('/activities/statistics');
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      throw error;
+    }
+  }
+}
+
+export default api

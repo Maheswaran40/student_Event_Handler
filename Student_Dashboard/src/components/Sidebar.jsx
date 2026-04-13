@@ -17,6 +17,7 @@ const Sidebar = () => {
   const navItems = [
     { to: '/dashboard', icon: FiHome, label: 'Dashboard' },
     { to: '/events', icon: FiCalendar, label: 'Events' },
+    { to: '/activity', icon: FiCalendar, label: 'Activity' },
     { to: '/profile', icon: FiUser, label: 'Profile' },
     { to: '/settings', icon: FiSettings, label: 'Settings' },
     { to: '/analytics', icon: FiTrendingUp, label: 'Analytics' },
@@ -28,7 +29,7 @@ const Sidebar = () => {
   }
   
   return (
-    <aside className="w-64 bg-white shadow-lg min-h-screen fixed left-0 top-16">
+    <aside className="w-64 bg-white shadow-lg lg:min-h-screen overflow-scroll fixed left-0 top-16 ">
       <nav className="p-4">
         <div className="space-y-2">
           {navItems.map((item) => (

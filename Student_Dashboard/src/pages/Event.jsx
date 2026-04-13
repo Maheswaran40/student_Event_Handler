@@ -4,6 +4,7 @@ import EventCard from '../components/EventCard'
 import Sidebar from '../components/Sidebar'
 import { FiSearch, FiFilter } from 'react-icons/fi'
 import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 
 const Events = () => {
   const [events, setEvents] = useState([])
@@ -12,7 +13,7 @@ const Events = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [categories, setCategories] = useState([])
-
+  const navigate=useNavigate()
   useEffect(() => {
     fetchEvents()
   }, [])
@@ -62,8 +63,10 @@ const Events = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 ml-64">
+       <div className="lg:flex hidden" >
+            <Sidebar />
+            </div>
+      <div className="flex-1 lg:ml-64 lg:mx-2  p-6 sm:w-[420px] overflow-scroll">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">All Events</h1>
           <p className="text-gray-600">Discover and join amazing events happening near you</p>
@@ -79,11 +82,11 @@ const Events = () => {
                 placeholder="Search events..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="sm:w-full w-22  pl-10 pr-4 py-2 border border-gray-300  rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
             <div className="relative">
-              <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              {/* <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -94,7 +97,13 @@ const Events = () => {
                     {category === 'all' ? 'All Categories' : category}
                   </option>
                 ))}
-              </select>
+              </select> */}
+                 <button
+            onClick={() => navigate("/register")}
+            className="flex-1 btn-primary"
+          >
+            Register
+          </button>
             </div>
           </div>
         </div>

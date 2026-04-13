@@ -38,7 +38,12 @@ const studentSchema = new mongoose.Schema({
   event: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Event'
-  }
+  },
+   role: {
+    type: String,
+    enum: ['student', 'volunteer', 'admin'],
+    default: 'student'
+  },
 }, {
   timestamps: true
 });
