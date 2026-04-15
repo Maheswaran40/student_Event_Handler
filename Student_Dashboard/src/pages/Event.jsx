@@ -54,7 +54,7 @@ const Events = () => {
   }
 
   const handleRegister = (eventId) => {
-    toast.success('Successfully registered for the event!')
+    toast.success('Successfully registered for the event!',eventId)
   }
 
   const handleViewDetails = (eventId) => {

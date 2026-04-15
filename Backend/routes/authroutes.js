@@ -28,12 +28,14 @@ const router = express.Router();
 const {
   loginUser,
   createUserByAdmin,
+  registerUser
 // } = require("../controllers/authController");
 } = require("../controller/authController");
 
 const { protect, adminOnly } = require("../middleware/authmiddle");
 // Login
 router.post("/login", loginUser);
+router.post("/registerUser", registerUser);
 
 // Admin creates users
 router.post("/create-user", protect, adminOnly, createUserByAdmin);
