@@ -90,7 +90,7 @@ const Navbar = () => {
           </button>
         </div>
 
-        <Sidebar onOptionSelect={handleOptionSelect} />
+        <Sidebar onOptionSelect={handleOptionSelect} close={setIsOpen}/>
       </div>
 
           <div className="flex items-center justify-between space-x-4">

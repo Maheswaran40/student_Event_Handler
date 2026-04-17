@@ -2,9 +2,17 @@ const express = require('express');
 const router = express.Router();
 const eventController = require('../controller/eventcontroller');
 const upload = require('../middleware/multer');
+const { protect, adminOnly } = require("../middleware/authmiddle");
+
 // Event routes
 // router.post('/', eventController.createEvent);
-router.post('/', upload.single("image"), eventController.createEvent);
+router.post(
+  '/',
+  protect,
+  adminOnly,
+  upload.single("image"),
+  eventController.createEvent
+);
 router.get('/', eventController.getAllEvents);
 router.get('/upcoming', eventController.getUpcomingEvents);
 router.get('/status/:status', eventController.getEventsByStatus);

@@ -19,7 +19,7 @@ import {
 import Sidebar from '../components/Sidebar';
 
 // Import services from your existing API
-import { eventsService, userService, activitiesService } from '../services/api';
+import { eventsService, userService } from '../services/api';
 
 const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
   const [activities, setActivities] = useState([]);
@@ -65,11 +65,11 @@ const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
       if (response.data.success) {
         setActivities(response.data.data);
         calculateStats(response.data.data);
-      } else if (activitiesService) {
-        // Fallback to your existing service
-        const data = await activitiesService.getAllActivities();
-        setActivities(data);
-        calculateStats(data);
+      // } else if (activitiesService) {
+      //   // Fallback to your existing service
+      //   const data = await activitiesService.getAllActivities();
+      //   setActivities(data);
+      //   calculateStats(data);
       }
     } catch (error) {
       console.error('Error fetching activities:', error);

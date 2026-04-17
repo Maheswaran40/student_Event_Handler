@@ -9,24 +9,27 @@ import {
   FiTrendingUp,
   FiBell
 } from 'react-icons/fi'
+import { LuActivity } from "react-icons/lu";
+import { FaWpforms } from "react-icons/fa6";
 import { useAuth } from '../context/AuthContext'
 
-const Sidebar = () => {
+const Sidebar = ({close}) => {
   const { isAdmin } = useAuth()
   
   const navItems = [
     { to: '/dashboard', icon: FiHome, label: 'Dashboard' },
     { to: '/events', icon: FiCalendar, label: 'Events' },
-    { to: '/activity', icon: FiCalendar, label: 'Activity' },
+    { to: '/activity', icon: LuActivity, label: 'Activity' },
     { to: '/profile', icon: FiUser, label: 'Profile' },
     { to: '/settings', icon: FiSettings, label: 'Settings' },
     { to: '/analytics', icon: FiTrendingUp, label: 'Analytics' },
     { to: '/notifications', icon: FiBell, label: 'Notifications' },
+    { to: '/volunteerForm', icon: FaWpforms, label: 'create volunteer' },
   ]
   
-  if (isAdmin) {
-    navItems.push({ to: '/admin', icon: FiShield, label: 'Admin Panel' })
-  }
+  // if (isAdmin) {
+  //   navItems.push({ to: '/admin', icon: FiShield, label: 'Admin Panel' })
+  // }
   
   return (
     <aside className="w-64 bg-white shadow-lg lg:min-h-screen overflow-scroll fixed left-0 top-16 ">
@@ -45,7 +48,7 @@ const Sidebar = () => {
               }
             >
               <item.icon className="text-xl" />
-              <span className="font-medium">{item.label}</span>
+              <span className="font-medium" onClick={()=>close(false)}>{item.label}</span>
             </NavLink>
           ))}
         </div>

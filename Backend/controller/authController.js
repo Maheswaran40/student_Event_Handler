@@ -15,14 +15,14 @@ const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    console.log("user" , user)
+    console.log("user" , user.password,password)
     if (!user) {
       return res.status(401).json({
         success: false,
         error: "Invalid email or password 1st",
       });
     }
-
+    console.log(await bcrypt.hash(password,10)) 
     const isMatch = await bcrypt.compare(password, user.password);
     console.log("isMatch",isMatch)
     if (!isMatch) {

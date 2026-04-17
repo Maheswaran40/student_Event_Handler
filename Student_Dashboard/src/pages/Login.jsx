@@ -1,24 +1,27 @@
 import React, { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { FiMail, FiLock, FiLogIn } from 'react-icons/fi'
-
+import axios from "axios"
+import toast from 'react-hot-toast'
+import {  useNavigate } from 'react-router-dom'
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
-
+  const navigate=useNavigate()
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     await login(email, password)
     setLoading(false)
   }
-
+console.log(email,password)
   // In your login component
-const handleLogin = async (email, password) => {
+const handleLogin = async (e) => {
+  e.preventDefault()
   try {
-    const response = await axios.post('http://localhost:5000/api/auth/login', {
+    const response = await axios.post('http://localhost:5000/api/login', {
       email,
       password
     });
@@ -35,7 +38,7 @@ const handleLogin = async (email, password) => {
       
       // Redirect based on role
       if (userData.role === 'admin') {
-        navigate('/admin');
+        navigate('/dashboard');
       } else {
         navigate('/dashboard');
       }
@@ -56,7 +59,7 @@ const handleLogin = async (email, password) => {
           <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email Address
