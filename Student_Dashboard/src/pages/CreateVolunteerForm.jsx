@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 // import { createVolunteer } from '../services/volunteerService'; // Adjust import path as needed
 import axios from "axios"
 const CreateVolunteerForm = () => {
@@ -6,9 +6,13 @@ const CreateVolunteerForm = () => {
     name: '',
     email: '',
     password: '',
-    role: 'volunteer' // Default role
+    role: 'volunteer', // Default role
+    eventsId:''
   });
-  
+  const [eventsData, setEvents] = useState([]); // store list her
+    console.log("volunteer creation",formData.eventsId , eventsData);
+    
+   let eventUrl = "http://localhost:5000/api/events/upcoming";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -17,6 +21,18 @@ const CreateVolunteerForm = () => {
     { value: 'volunteer', label: 'Volunteer' },
     { value: 'admin', label: 'Admin' }
   ];
+
+  
+  // const events=[{value:"techtonic",label:'techtonic'},{value:"mindmesh",label:'mindmesh'}]
+  const fetchEvents=async () =>{
+    let data=await axios.get(eventUrl)
+    console.log(data.data.data)
+    setEvents(data.data.data)
+  }
+  useEffect(() => {
+    fetchEvents()
+  }, [])
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -55,6 +71,10 @@ const CreateVolunteerForm = () => {
       setError('Role is required');
       return false;
     }
+    if(!formData.eventsId){
+      setError('event is required')
+      return false;
+    }
     return true;
   };
 
@@ -73,7 +93,8 @@ const handleSubmit = async (e) => {
 
   try {
     const token = localStorage.getItem("token"); // ✅ get token
-
+    console.log("in try block",formData.eventsId);
+    
     const response = await axios.post(
       VolunteerUrl,
       formData,
@@ -92,7 +113,8 @@ const handleSubmit = async (e) => {
       name: '',
       email: '',
       password: '',
-      role: 'volunteer'
+      role: 'volunteer',
+      eventsId:''
     });
 
     setTimeout(() => setSuccess(''), 3000);
@@ -115,7 +137,8 @@ const handleSubmit = async (e) => {
       name: '',
       email: '',
       password: '',
-      role: 'volunteer'
+      role: 'volunteer',
+      eventsId:''
     });
     setError('');
     setSuccess('');
@@ -219,6 +242,30 @@ const handleSubmit = async (e) => {
             {roles.map(role => (
               <option key={role.value} value={role.value}>
                 {role.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+         {/* events Field */}
+        <div>
+          <label htmlFor="events" className="block text-sm font-medium text-gray-700 mb-1">
+            events *
+          </label>
+          <select
+            id="events"
+            name="eventsId"
+            value={formData.eventsId}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            disabled={loading}
+          >
+           <option value="" disabled>
+                {eventsData.length === 0 ? "Loading events..." : "Select Event"}
+              </option>
+            {eventsData.map(event => (
+              <option key={event._id} value={event._id}>
+                {event.title}
               </option>
             ))}
           </select>

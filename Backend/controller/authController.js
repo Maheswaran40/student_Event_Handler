@@ -53,7 +53,7 @@ const loginUser = async (req, res) => {
 // ✅ ADMIN CREATES USER
 const createUserByAdmin = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role , events } = req.body;
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -70,6 +70,7 @@ const createUserByAdmin = async (req, res) => {
       email,
       password: hashedPassword,
       role,
+      events
     });
 
     res.status(201).json({
@@ -107,8 +108,22 @@ const registerUser = async (req, res) => {
   }
 };
 
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 module.exports = {
   loginUser,
   createUserByAdmin,
-  registerUser
+  registerUser,
+  getMe
 };

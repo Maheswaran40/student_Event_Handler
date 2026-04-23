@@ -5,6 +5,7 @@ import EventCard from '../components/EventCard'
 import Sidebar from '../components/Sidebar'
 import { FiTrendingUp, FiUsers, FiCalendar, FiStar } from 'react-icons/fi'
 import toast from 'react-hot-toast'
+
 const Dashboard = () => {
   const { user } = useAuth()
   const [events, setEvents] = useState([])

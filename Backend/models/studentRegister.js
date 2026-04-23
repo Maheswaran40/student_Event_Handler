@@ -44,6 +44,18 @@ const studentSchema = new mongoose.Schema({
     enum: ['student', 'volunteer', 'admin'],
     default: 'student'
   },
+    totalScore: { 
+    type: Number, 
+    default: 0 
+  },
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  },
+  updatedAt: { 
+    type: Date, 
+    default: Date.now 
+  }
 }, {
   timestamps: true
 });

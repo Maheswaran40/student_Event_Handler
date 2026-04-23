@@ -48,6 +48,12 @@ const eventSchema = new mongoose.Schema({
     type: String,
     require:[true, 'Event image is required']
   },
+  registeredStudents: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Student"
+  }
+],
   gradientColor: { type: String, default: "from-indigo-500 to-purple-600" },
   tagline:{type:String}
 }, {
@@ -56,7 +62,7 @@ const eventSchema = new mongoose.Schema({
 
 // Virtual for checking if event is full
 eventSchema.virtual('isFull').get(function() {
-  return this.participants && this.participants.length >= this.maxParticipants;
+  return this.registeredStudents.length >= this.maxParticipants;
 });
 
 // Create indexes

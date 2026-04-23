@@ -1,12 +1,10 @@
-// pages/ActivityPage.jsx
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// pages/StudentScoreBoard.jsx
+import React, { useEffect, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { 
   CalendarIcon, 
   UserIcon, 
   TrophyIcon, 
-  CheckCircleIcon, 
   XCircleIcon,
   ClockIcon,
   EyeIcon,
@@ -15,246 +13,468 @@ import {
   MapPinIcon,
   DocumentTextIcon,
   PlusIcon,
-  // FilterIcon,
   MagnifyingGlassIcon,
-  CloudArrowUpIcon,
-  FlagIcon
+  ChartBarIcon,
+  SparklesIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import Sidebar from '../components/Sidebar';
+import axios from 'axios';
 
 const ActivityPage = () => {
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedActivity, setSelectedActivity] = useState(null);
-  const [filterEvent, setFilterEvent] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [searchTitle, setSearchTitle] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showReassignModal, setShowReassignModal] = useState(false);
-  const [selectedActivityForReassign, setSelectedActivityForReassign] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [stats, setStats] = useState({
-    total: 0,
-    completed: 0,
-    pending: 0,
-    approved: 0,
-    cancelled: 0,
-    totalPoints: 0
-  });
+  // Demo data states
+  // const [students] = useState([
+  //   { id: 'stu1', name: 'Alice Johnson', rollNumber: '2024001', class: '10A', email: 'alice@example.com' },
+  //   { id: 'stu2', name: 'Bob Smith', rollNumber: '2024002', class: '10A', email: 'bob@example.com' },
+  //   { id: 'stu3', name: 'Charlie Brown', rollNumber: '2024003', class: '10B', email: 'charlie@example.com' },
+  //   { id: 'stu4', name: 'Diana Prince', rollNumber: '2024004', class: '10B', email: 'diana@example.com' },
+  //   { id: 'stu5', name: 'Ethan Hunt', rollNumber: '2024005', class: '10C', email: 'ethan@example.com' },
+  // ]);
 
-  const API_BASE_URL = 'http://localhost:5000/api';
-  const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  // const [events] = useState([
+  //   { id: 'evt1', title: 'Mathematics Quiz', description: 'Test math skills', date: '2025-05-10', venue: 'Room 101', maxScore: 100, status: 'upcoming' },
+  //   { id: 'evt2', title: 'Science Exhibition', description: 'Showcase science projects', date: '2025-05-18', venue: 'Science Hall', maxScore: 100, status: 'ongoing' },
+  //   { id: 'evt3', title: 'Sports Day', description: 'Annual sports competition', date: '2025-06-05', venue: 'Sports Ground', maxScore: 50, status: 'upcoming' },
+  //   { id: 'evt4', title: 'Art Competition', description: 'Creative arts showcase', date: '2025-05-25', venue: 'Art Gallery', maxScore: 75, status: 'ongoing' },
+  // ]);
 
-  // Get current user from auth context
+  const [scores] = useState([
+    { id: 'scr1', studentId: 'stu1', eventId: 'evt1', score: 85, status: 'approved', volunteerId: 'vol1', remarks: 'Good performance' },
+    { id: 'scr2', studentId: 'stu2', eventId: 'evt1', score: 78, status: 'approved', volunteerId: 'vol1', remarks: 'Needs improvement' },
+    { id: 'scr3', studentId: 'stu3', eventId: 'evt1', score: 92, status: 'pending', volunteerId: 'vol1', remarks: 'Excellent' },
+    { id: 'scr4', studentId: 'stu1', eventId: 'evt2', score: 88, status: 'approved', volunteerId: 'vol2', remarks: 'Very creative' },
+    { id: 'scr5', studentId: 'stu2', eventId: 'evt2', score: 76, status: 'pending', volunteerId: 'vol2', remarks: 'Good effort' },
+  ]);
+
+  const [loading, setLoading] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [showScoreModal, setShowScoreModal] = useState(false);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [currentUser,setCurrentUser] = useState(null);
+  const [events,setEvents]=useState(null)
+  const [students,setStudents]=useState([])
+  const [filterClass, setFilterClass] = useState('');
+  const [searchStudent, setSearchStudent] = useState('');
+  const [viewMode, setViewMode] = useState('events');
+  const [eventScores, setEventScores] = useState([]);
+  const [registrationData, setRegistrationData] = useState({});
+
+  const isAdmin = currentUser === 'admin';
+  const isVolunteer = currentUser === 'volunteer';
+  console.log("events",events)
+  console.log("students",students)
+  
   const getCurrentUser = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const response = await api.get('/auth/me');
-        if (response.data.success) {
-          setCurrentUser(response.data.data);
-          return response.data.data;
-        }
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.get("http://localhost:5000/api/me", {
+      headers: {
+        Authorization: `Bearer ${token}`
       }
-    } catch (error) {
-      console.error('Error getting current user:', error);
-    }
-    // Fallback demo user - replace with your actual auth
-    const demoUser = { id: 'admin1', name: 'Admin User', role: 'admin' };
-    setCurrentUser(demoUser);
-    return demoUser;
-  };
-
-  // Fetch existing users (volunteers) and events
-  const fetchUsersAndEvents = async () => {
-    try {
-      const [usersRes, eventsRes] = await Promise.all([
-        api.get('/users?role=volunteer'),
-        api.get('/events')
-      ]);
-      if (usersRes.data.success) setUsers(usersRes.data.data);
-      if (eventsRes.data.success) setEvents(eventsRes.data.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      // Demo fallback data
-      setUsers([
-        { id: 'vol1', name: 'Emma Watson', role: 'volunteer', email: 'emma@example.com', points: 240 },
-        { id: 'vol2', name: 'Liam Chen', role: 'volunteer', email: 'liam@example.com', points: 185 },
-        { id: 'vol3', name: 'Sofia Ramirez', role: 'volunteer', email: 'sofia@example.com', points: 312 }
-      ]);
-      setEvents([
-        { id: 'evt1', name: 'Annual Tech Symposium', date: '2025-05-10', venue: 'Main Auditorium' },
-        { id: 'evt2', name: 'Beach Cleanup Drive', date: '2025-05-18', venue: 'Sunset Beach' },
-        { id: 'evt3', name: 'Charity Gala Night', date: '2025-06-05', venue: 'Grand Ballroom' }
-      ]);
-    }
-  };
-
-  // Fetch activities based on user role
-  const fetchActivities = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/activities');
-      if (response.data.success) {
-        setActivities(response.data.data);
-        calculateStats(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching activities:', error);
-      toast.error('Failed to fetch activities');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Calculate statistics
-  const calculateStats = (activitiesData) => {
-    const completed = activitiesData.filter(a => a.status === 'completed');
-    const pending = activitiesData.filter(a => a.status === 'pending');
-    const approved = activitiesData.filter(a => a.status === 'approved');
-    const cancelled = activitiesData.filter(a => a.status === 'cancelled');
-    const totalPoints = activitiesData.reduce((sum, a) => sum + (a.points || 0), 0);
-    
-    setStats({
-      total: activitiesData.length,
-      completed: completed.length,
-      pending: pending.length,
-      approved: approved.length,
-      cancelled: cancelled.length,
-      totalPoints: totalPoints
     });
-  };
+    console.log("checking admin or not",response.data.data);
+    
 
-  // Create new activity (Admin only)
-  const createActivity = async (activityData) => {
-    try {
-      const response = await api.post('/activities', activityData);
-      if (response.data.success) {
-        toast.success('Activity created and assigned successfully');
-        setShowCreateModal(false);
-        fetchActivities();
-        return true;
-      }
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || 'Failed to create activity';
-      toast.error(errorMsg);
-      return false;
+    if (response.data) {
+      setCurrentUser(response.data.data.role);
+      console.log(response.data.data)
+      setEvents(response.data.data.events)
+      setStudents(response.data.data.students)
+       //  real user
     }
+  } catch (error) {
+    console.error(error);
+  }
+};
+useEffect(() => {
+  getCurrentUser();
+}, []);
+
+
+// const fetchStudentsByEvent = async (eventId) => {
+//   try {
+//     const token = localStorage.getItem("token");
+
+//     const res = await axios.get(
+//       `http://localhost:5000/api/event/${eventId}/students`,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`
+//         }
+//       }
+//     );
+
+//     console.log("students:", res);
+
+//     if (res.data.success) {
+//       setStudents(res.data.data); // ✅ correct
+//     }
+
+//   } catch (error) {
+//     console.error("Fetch error:", error.response?.data || error.message);
+//   }
+// };
+// useEffect(() => {
+//   if (events && events.length > 0) {
+//     const eventId = events[0]._id; // ✅ first event
+//     fetchStudentsByEvent(eventId);
+//   }
+// }, [events]);
+
+  // Filter students
+  // const filteredStudents = students.filter(student => {
+  //   if (filterClass && student.class !== filterClass) return false;
+  //   if (searchStudent && !student.name.toLowerCase().includes(searchStudent.toLowerCase())) return false;
+  //   return true;
+  // });
+
+  // Get unique classes
+  const uniqueClasses = [...new Set(students.map(s => s.class))];
+
+  // Get student's total score
+  const getStudentTotalScore = (studentId) => {
+    return scores
+      .filter(s => s.studentId === studentId && s.status === 'approved')
+      .reduce((sum, s) => sum + (s.score || 0), 0);
   };
 
-  // Update activity (status, reassign, points)
-  const updateActivity = async (id, updates) => {
-    try {
-      const response = await api.put(`/activities/${id}`, updates);
-      if (response.data.success) {
-        toast.success('Activity updated successfully');
-        fetchActivities();
-        if (selectedActivity?._id === id) {
-          setSelectedActivity(response.data.data);
-        }
-        return true;
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to update activity');
-      return false;
-    }
+  // Get student's score for a specific event
+  const getStudentEventScore = (studentId, eventId) => {
+    return scores.find(s => s.studentId === studentId && s.eventId === eventId);
   };
 
-  // Volunteer marks activity as completed with proof
-  const markAsCompleted = async (id, proofUrl) => {
-    try {
-      const response = await api.patch(`/activities/${id}/complete`, { proof: proofUrl });
-      if (response.data.success) {
-        toast.success('Activity marked as completed! Waiting for admin approval.');
-        fetchActivities();
-        return true;
-      }
-    } catch (error) {
-      toast.error('Failed to mark as completed');
-      return false;
-    }
+  // Sort students by total score
+  // const sortedStudents = [...filteredStudents].sort((a, b) => {
+  //   const scoreA = getStudentTotalScore(a.id);
+  //   const scoreB = getStudentTotalScore(b.id);
+  //   return scoreB - scoreA;
+  // });
+
+  // Load event scores
+  const loadEventScores = (event) => {
+    setSelectedEvent(event);
+    const eventSpecificScores = scores.filter(s => s.eventId === event.id);
+    
+    const scoresWithDetails = eventSpecificScores.map((score) => {
+      const student = students.find(s => s.id === score.studentId);
+      return {
+        ...score,
+        studentName: student?.name || 'Unknown',
+        rollNumber: student?.rollNumber || 'N/A',
+        class: student?.class || 'N/A'
+      };
+    });
+    
+    setEventScores(scoresWithDetails);
+    setViewMode('scoreboard');
   };
 
-  // Delete activity (Admin only)
-  const deleteActivity = async (id) => {
-    if (window.confirm('Are you sure you want to delete this activity?')) {
-      try {
-        const response = await api.delete(`/activities/${id}`);
-        if (response.data.success) {
-          toast.success('Activity deleted successfully');
-          fetchActivities();
-          if (selectedActivity?._id === id) {
-            setSelectedActivity(null);
-          }
-        }
-      } catch (error) {
-        toast.error('Failed to delete activity');
-      }
-    }
+  // Toggle registration
+  const toggleRegistration = (studentId, eventId, isRegistered) => {
+    setRegistrationData(prev => ({
+      ...prev,
+      [studentId]: !isRegistered
+    }));
+    toast.success(`Student ${!isRegistered ? 'registered' : 'unregistered'} successfully`);
   };
 
-  useEffect(() => {
-    const init = async () => {
-      await getCurrentUser();
-      await fetchUsersAndEvents();
-      await fetchActivities();
-    };
-    init();
-  }, []);
+  // Handle score submission
+  const handleSubmitScore = (scoreData) => {
+    toast.success('Score submitted successfully! Waiting for admin approval.',scoreData);
+    setShowScoreModal(false);
+  };
 
-  // Filter activities
-  const filteredActivities = activities.filter(activity => {
-    if (filterEvent && activity.eventId?._id !== filterEvent && activity.eventId !== filterEvent) return false;
-    if (filterStatus && activity.status !== filterStatus) return false;
-    if (searchTitle && !activity.title?.toLowerCase().includes(searchTitle.toLowerCase())) return false;
-    return true;
-  });
+  // Handle approve score
+  const handleApproveScore = (scoreId) => {
+    toast.success('Score approved successfully',scoreId);
+  };
 
-  const isAdmin = currentUser?.role === 'admin';
+  // Handle create event
+  const handleCreateEvent = (eventData) => {
+    toast.success('Event created successfully');
+    setShowEventModal(false);
+  };
 
   // Status badge component
-  const StatusBadge = ({ status }) => {
+  const EventStatusBadge = ({ status }) => {
     const styles = {
-      pending: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-      approved: 'bg-green-100 text-green-800 border border-green-200',
-      completed: 'bg-blue-100 text-blue-800 border border-blue-200',
-      cancelled: 'bg-red-100 text-red-800 border border-red-200'
-    };
-    const icons = {
-      pending: <ClockIcon className="w-3 h-3 mr-1" />,
-      approved: <CheckCircleIcon className="w-3 h-3 mr-1" />,
-      completed: <TrophyIcon className="w-3 h-3 mr-1" />,
-      cancelled: <XCircleIcon className="w-3 h-3 mr-1" />
+      upcoming: 'bg-blue-100 text-blue-800',
+      ongoing: 'bg-green-100 text-green-800',
+      completed: 'bg-gray-100 text-gray-800',
+      cancelled: 'bg-red-100 text-red-800'
     };
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${styles[status]}`}>
-        {icons[status]}
-        {status.toUpperCase()}
+      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${styles[status] || styles.upcoming}`}>
+        {status?.toUpperCase() || 'UPCOMING'}
       </span>
     );
   };
 
-  const PriorityBadge = ({ priority }) => {
-    const styles = {
-      High: 'bg-red-100 text-red-800',
-      Medium: 'bg-yellow-100 text-yellow-800',
-      Low: 'bg-green-100 text-green-800'
-    };
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${styles[priority] || styles.Medium}`}>
-        <FlagIcon className="w-3 h-3 mr-1" />
-        {priority || 'Medium'}
-      </span>
-    );
-  };
+  // Admin View: Events Grid
+  const AdminEventsView = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {events.map(event => (
+        <div
+          key={event.id}
+          onClick={() => loadEventScores(event)}
+          className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1 overflow-hidden"
+        >
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
+            <h3 className="text-xl font-bold text-white mb-2">{event.title}</h3>
+            <EventStatusBadge status={event.status} />
+          </div>
+          <div className="p-4">
+            <p className="text-gray-600 text-sm mb-3">{event.description}</p>
+            <div className="space-y-2">
+              <div className="flex items-center text-sm text-gray-500">
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                {new Date(event.date).toLocaleDateString()}
+              </div>
+              <div className="flex items-center text-sm text-gray-500">
+                <MapPinIcon className="w-4 h-4 mr-2" />
+                {event.venue}
+              </div>
+              <div className="flex items-center text-sm text-gray-500">
+                <TrophyIcon className="w-4 h-4 mr-2" />
+                Max Score: {event.maxScore}
+              </div>
+            </div>
+            <div className="mt-4 flex justify-between items-center">
+              <span className="text-xs text-gray-400">
+                Scores: {scores.filter(s => s.eventId === event.id).length}
+              </span>
+              <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                View Scoreboard →
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Admin View: Event Scoreboard
+  const AdminScoreboardView = () => (
+    <div>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <button
+            onClick={() => {
+              setViewMode('events');
+              setSelectedEvent(null);
+              setEventScores([]);
+            }}
+            className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
+          >
+            ← Back to Events
+          </button>
+          <h2 className="text-2xl font-bold text-gray-900 mt-2">{selectedEvent?.title} - Scoreboard</h2>
+          <p className="text-gray-600">{selectedEvent?.venue} | {selectedEvent?.date && new Date(selectedEvent.date).toLocaleDateString()}</p>
+        </div>
+        <div className="flex gap-2">
+          <EventStatusBadge status={selectedEvent?.status} />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roll Number</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {eventScores.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                    No scores submitted yet for this event
+                  </td>
+                </tr>
+              ) : (
+                [...eventScores].sort((a, b) => b.score - a.score).map((score, index) => (
+                  <tr key={score.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-semibold">#{index + 1}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <UserIcon className="w-4 h-4 text-gray-400 mr-2" />
+                        <span className="text-sm font-medium text-gray-900">{score.studentName}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{score.rollNumber}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">{score.class}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-lg font-bold text-gray-900">{score.score}</span>
+                      <span className="text-sm text-gray-500">/{selectedEvent?.maxScore}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        score.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {score.status === 'approved' ? 'Approved' : 'Pending'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{score.remarks || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {score.status === 'pending' && (
+                        <button
+                          onClick={() => handleApproveScore(score.id)}
+                          className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                        >
+                          Approve
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Volunteer View: Event Registration & Score Entry
+  const VolunteerEventView = () => (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">My Events</h2>
+        <p className="text-gray-600">Manage student registrations and submit scores</p>
+      </div>
+
+      {events.map(event => (
+        <div key={event.id} className="mb-8 bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-white">{event.title}</h3>
+                <p className="text-blue-100 text-sm mt-1">{event.description}</p>
+              </div>
+              <EventStatusBadge status={event.status} />
+            </div>
+          </div>
+          
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 pb-4 border-b">
+              <div className="flex items-center text-sm text-gray-600">
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                {new Date(event.date).toLocaleDateString()}
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <MapPinIcon className="w-4 h-4 mr-2" />
+                {event.venue}
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <TrophyIcon className="w-4 h-4 mr-2" />
+                Max Score: {event.maxScore}
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roll No</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Registration</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {students.map(student => {
+                    const existingScore = getStudentEventScore(student.id, event.id);
+                    const isRegistered = registrationData[student.id] || false;
+                    
+                    return (
+                      <tr key={student.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                          <div className="text-xs text-gray-500">{student.email}</div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{student.rollNumber}</td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">{student.class}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => toggleRegistration(student.id, event.id, isRegistered)}
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                              isRegistered 
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            {isRegistered ? (
+                              <span className="flex items-center gap-1">
+                                <CheckCircleIcon className="w-4 h-4" />
+                                Registered
+                              </span>
+                            ) : (
+                              'Mark Register'
+                            )}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {existingScore ? (
+                            <span className={`text-sm font-semibold ${
+                              existingScore.status === 'approved' ? 'text-green-600' : 'text-yellow-600'
+                            }`}>
+                              {existingScore.score}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {existingScore && (
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              existingScore.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {existingScore.status === 'approved' ? 'Approved' : 'Pending'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => {
+                              setSelectedStudent(student);
+                              setSelectedEvent(event);
+                              setShowScoreModal(true);
+                            }}
+                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                            disabled={!isRegistered}
+                          >
+                            {existingScore ? 'Update Score' : 'Add Score'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -271,24 +491,32 @@ const ActivityPage = () => {
             <div className="flex flex-wrap justify-between items-center gap-4">
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Activity Management
+                  {isAdmin ? 'Event Scoreboard Management' : 'Volunteer Dashboard'}
                 </h1>
                 <p className="mt-1 text-sm text-gray-500">
-                  {isAdmin ? 'Manage and assign activities to volunteers' : 'View and manage your assigned activities'}
+                  {isAdmin 
+                    ? 'Click on any event to view and manage scores' 
+                    : 'Mark student registrations and submit scores for admin approval'}
                 </p>
               </div>
               <div className="flex gap-3">
-                {isAdmin && (
+                {isVolunteer && (
                   <button
-                    onClick={() => setShowCreateModal(true)}
+                    onClick={() => setShowEventModal(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md"
                   >
                     <PlusIcon className="w-5 h-5" />
-                    Create Activity
+                    Create Event
                   </button>
                 )}
                 <button
-                  onClick={fetchActivities}
+                  onClick={() => {
+                    setLoading(true);
+                    setTimeout(() => {
+                      setLoading(false);
+                      toast.success('Data refreshed');
+                    }, 1000);
+                  }}
                   className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
                 >
                   <ArrowPathIcon className="w-5 h-5" />
@@ -299,248 +527,74 @@ const ActivityPage = () => {
           </div>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
-              <p className="text-xs text-gray-500">Total Activities</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
-              <p className="text-xs text-gray-500">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
-              <p className="text-xs text-gray-500">Completed</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
-              <p className="text-xs text-gray-500">Approved</p>
-              <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-red-500 hover:shadow-lg transition-shadow">
-              <p className="text-xs text-gray-500">Cancelled</p>
-              <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
-              <p className="text-xs text-gray-500">Total Points</p>
-              <p className="text-2xl font-bold text-purple-600">{stats.totalPoints}</p>
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="mt-8 bg-white rounded-xl shadow-sm p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by activity title..."
-                  value={searchTitle}
-                  onChange={(e) => setSearchTitle(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+        {/* Filters - Only show for volunteer view or when not in scoreboard */}
+        {(!isAdmin || (isAdmin && viewMode === 'events')) && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by student name..."
+                    value={searchStudent}
+                    onChange={(e) => setSearchStudent(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <select
+                  value={filterClass}
+                  onChange={(e) => setFilterClass(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Classes</option>
+                  {uniqueClasses.map(className => (
+                    <option key={className} value={className}>{className}</option>
+                  ))}
+                </select>
               </div>
-              
-              <select
-                value={filterEvent}
-                onChange={(e) => setFilterEvent(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Events</option>
-                {events.map(event => (
-                  <option key={event._id || event.id} value={event._id || event.id}>
-                    {event.name || event.title}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-                <option value="approved">Approved</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
             </div>
           </div>
+        )}
 
-          {/* Activities Table */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : (
-            <div className="mt-6 bg-white rounded-xl shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredActivities.map((activity) => (
-                      <tr key={activity._id || activity.id} className="hover:bg-gray-50 transition">
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{activity.title}</div>
-                          {activity.description && (
-                            <div className="text-xs text-gray-500 truncate max-w-xs">{activity.description}</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{activity.eventId?.name || activity.eventId?.title || 'N/A'}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <UserIcon className="w-4 h-4 text-gray-400 mr-2" />
-                            <span className="text-sm text-gray-900">{activity.assignedTo?.name || 'Unassigned'}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <StatusBadge status={activity.status} />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <PriorityBadge priority={activity.priority} />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center text-sm text-gray-500">
-                            <CalendarIcon className="w-4 h-4 mr-1" />
-                            {activity.deadline ? new Date(activity.deadline).toLocaleDateString() : 'No deadline'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <TrophyIcon className="w-4 h-4 text-yellow-500 mr-1" />
-                            <span className="text-sm font-semibold text-gray-900">{activity.points || 0}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <div className="flex justify-center gap-2">
-                            <button
-                              onClick={() => setSelectedActivity(activity)}
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
-                              title="View Details"
-                            >
-                              <EyeIcon className="w-5 h-5" />
-                            </button>
-                            
-                            {isAdmin ? (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setSelectedActivityForReassign(activity);
-                                    setShowReassignModal(true);
-                                  }}
-                                  className="p-1 text-purple-600 hover:bg-purple-50 rounded transition"
-                                  title="Reassign Volunteer"
-                                >
-                                  <UserIcon className="w-5 h-5" />
-                                </button>
-                                {activity.status === 'completed' && (
-                                  <>
-                                    <button
-                                      onClick={() => updateActivity(activity._id || activity.id, { status: 'approved' })}
-                                      className="p-1 text-green-600 hover:bg-green-50 rounded transition"
-                                      title="Approve"
-                                    >
-                                      <CheckCircleIcon className="w-5 h-5" />
-                                    </button>
-                                    <button
-                                      onClick={() => updateActivity(activity._id || activity.id, { status: 'cancelled', remarks: 'Rejected by admin' })}
-                                      className="p-1 text-red-600 hover:bg-red-50 rounded transition"
-                                      title="Reject"
-                                    >
-                                      <XCircleIcon className="w-5 h-5" />
-                                    </button>
-                                  </>
-                                )}
-                                <button
-                                  onClick={() => deleteActivity(activity._id || activity.id)}
-                                  className="p-1 text-red-600 hover:bg-red-50 rounded transition"
-                                  title="Delete"
-                                >
-                                  <XCircleIcon className="w-5 h-5" />
-                                </button>
-                              </>
-                            ) : (
-                              activity.status === 'pending' && activity.assignedTo?._id === currentUser?.id && (
-                                <button
-                                  onClick={() => {
-                                    const proofUrl = prompt('Enter proof URL (image link):');
-                                    if (proofUrl) markAsCompleted(activity._id || activity.id, proofUrl);
-                                  }}
-                                  className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
-                                  title="Mark as Completed"
-                                >
-                                  <CheckCircleIcon className="w-5 h-5" />
-                                </button>
-                              )
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {filteredActivities.length === 0 && (
-                  <div className="text-center py-12">
-                    <DocumentTextIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No activities found</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <>
+              {isAdmin && viewMode === 'events' && <AdminEventsView />}
+              {isAdmin && viewMode === 'scoreboard' && <AdminScoreboardView />}
+              {isVolunteer && <VolunteerEventView />}
+            </>
           )}
         </div>
 
-        {/* Create Activity Modal */}
-        {showCreateModal && (
-          <CreateActivityModal
-            events={events}
-            users={users.filter(u => u.role === 'volunteer')}
-            onClose={() => setShowCreateModal(false)}
-            onSubmit={createActivity}
-          />
-        )}
-
-        {/* Reassign Modal */}
-        {showReassignModal && selectedActivityForReassign && (
-          <ReassignModal
-            activity={selectedActivityForReassign}
-            users={users.filter(u => u.role === 'volunteer')}
+        {/* Score Assignment Modal */}
+        {showScoreModal && selectedStudent && selectedEvent && (
+          <ScoreModal
+            student={selectedStudent}
+            event={selectedEvent}
+            existingScore={scores.find(s => 
+              s.studentId === selectedStudent.id && 
+              s.eventId === selectedEvent.id
+            )}
             onClose={() => {
-              setShowReassignModal(false);
-              setSelectedActivityForReassign(null);
+              setShowScoreModal(false);
+              setSelectedStudent(null);
+              setSelectedEvent(null);
             }}
-            onReassign={async (activityId, newVolunteerId) => {
-                  await updateActivity(activityId, { assignedTo: newVolunteerId });
-                  setShowReassignModal(false);
-                  setSelectedActivityForReassign(null);
-                }}
+            onSubmit={handleSubmitScore}
           />
         )}
 
-        {/* Activity Details Modal */}
-        {selectedActivity && (
-          <ActivityDetailsModal
-            activity={selectedActivity}
-            currentUser={currentUser}
-            users={users}
-            onClose={() => setSelectedActivity(null)}
-            onUpdate={updateActivity}
-            onMarkComplete={markAsCompleted}
+        {/* Create Event Modal */}
+        {showEventModal && (
+          <EventModal
+            onClose={() => setShowEventModal(false)}
+            onSubmit={handleCreateEvent}
           />
         )}
       </div>
@@ -548,36 +602,38 @@ const ActivityPage = () => {
   );
 };
 
-// Create Activity Modal Component
-const CreateActivityModal = ({ events, users, onClose, onSubmit }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    eventId: '',
-    assignedTo: '',
-    priority: 'Medium',
-    deadline: '',
-    points: 0
-  });
+// Score Modal Component
+const ScoreModal = ({ student, event, existingScore, onClose, onSubmit }) => {
+  const [score, setScore] = useState(existingScore?.score || '');
+  const [remarks, setRemarks] = useState(existingScore?.remarks || '');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.title || !formData.eventId || !formData.assignedTo) {
-      toast.error('Please fill all required fields');
+    if (!score || score < 0 || score > event.maxScore) {
+      toast.error(`Please enter a valid score between 0 and ${event.maxScore}`);
       return;
     }
+    
     setLoading(true);
-    await onSubmit(formData);
-    setLoading(false);
+    setTimeout(() => {
+      onSubmit({
+        studentId: student.id,
+        eventId: event.id,
+        score: parseInt(score),
+        remarks: remarks
+      });
+      setLoading(false);
+      onClose();
+    }, 500);
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Create New Activity
+      <div className="bg-white rounded-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="border-b p-4 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-gray-900">
+            {existingScore ? 'Update Score' : 'Add Score'} - {event.title}
           </h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <XCircleIcon className="w-6 h-6" />
@@ -585,15 +641,116 @@ const CreateActivityModal = ({ events, users, onClose, onSubmit }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="bg-blue-50 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              <strong>Student:</strong> {student.name} ({student.rollNumber})
+            </p>
+            <p className="text-sm text-blue-600 mt-1">
+              <strong>Class:</strong> {student.class}
+            </p>
+          </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Score (0-{event.maxScore}) *
+            </label>
+            <input
+              type="number"
+              min="0"
+              max={event.maxScore}
+              value={score}
+              onChange={(e) => setScore(e.target.value)}
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Remarks
+            </label>
+            <textarea
+              rows="3"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              placeholder="Add any comments about the student's performance..."
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+            >
+              {loading ? 'Submitting...' : (existingScore ? 'Update Score' : 'Submit Score')}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+          
+          {existingScore && (
+            <p className="text-xs text-gray-500 text-center mt-2">
+              Current status: {existingScore.status === 'approved' ? 'Approved' : 'Pending Approval'}
+            </p>
+          )}
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Event Modal Component
+const EventModal = ({ onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    date: '',
+    venue: '',
+    maxScore: 100
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.title || !formData.date || !formData.venue) {
+      toast.error('Please fill all required fields');
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      onSubmit(formData);
+      setLoading(false);
+      onClose();
+    }, 500);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="border-b p-4 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-gray-900">Create New Event</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <XCircleIcon className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
             <input
               type="text"
               required
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
               className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Enter activity title"
+              placeholder="e.g., Mathematics Quiz"
             />
           </div>
 
@@ -604,147 +761,43 @@ const CreateActivityModal = ({ events, users, onClose, onSubmit }) => {
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
               className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Describe the activity..."
+              placeholder="Describe the event..."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Event *</label>
-            <select
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+            <input
+              type="date"
               required
-              value={formData.eventId}
-              onChange={(e) => setFormData({...formData, eventId: e.target.value})}
+              value={formData.date}
+              onChange={(e) => setFormData({...formData, date: e.target.value})}
               className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              <option value="">Select Event</option>
-              {events.map(event => (
-                <option key={event._id || event.id} value={event._id || event.id}>
-                  {event.name || event.title}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Assign Volunteer *</label>
-            <select
+            <label className="block text-sm font-medium text-gray-700 mb-1">Venue *</label>
+            <input
+              type="text"
               required
-              value={formData.assignedTo}
-              onChange={(e) => setFormData({...formData, assignedTo: e.target.value})}
+              value={formData.venue}
+              onChange={(e) => setFormData({...formData, venue: e.target.value})}
               className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              <option value="">Select Volunteer</option>
-              {users.map(user => (
-                <option key={user._id || user.id} value={user._id || user.id}>
-                  {user.name} - {user.email}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
-              <input
-                type="date"
-                value={formData.deadline}
-                onChange={(e) => setFormData({...formData, deadline: e.target.value})}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
+              placeholder="e.g., Room 101, Main Hall"
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Score</label>
             <input
               type="number"
-              value={formData.points}
-              onChange={(e) => setFormData({...formData, points: parseInt(e.target.value) || 0})}
+              value={formData.maxScore}
+              onChange={(e) => setFormData({...formData, maxScore: parseInt(e.target.value) || 100})}
               className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Points to award"
+              min="1"
+              max="1000"
             />
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 font-medium"
-            >
-              {loading ? 'Creating...' : 'Create Activity'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 font-medium"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// Reassign Modal Component
-const ReassignModal = ({ activity, users, onClose, onReassign }) => {
-  const [selectedVolunteer, setSelectedVolunteer] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedVolunteer) {
-      toast.error('Please select a volunteer');
-      return;
-    }
-    setLoading(true);
-    await onReassign(activity._id || activity.id, selectedVolunteer);
-    setLoading(false);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="border-b p-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">Reassign Activity</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <XCircleIcon className="w-6 h-6" />
-          </button>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Activity: <span className="font-semibold">{activity.title}</span>
-            </label>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select New Volunteer *</label>
-            <select
-              required
-              value={selectedVolunteer}
-              onChange={(e) => setSelectedVolunteer(e.target.value)}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              <option value="">Select Volunteer</option>
-              {users.map(user => (
-                <option key={user._id || user.id} value={user._id || user.id}>
-                  {user.name} - Current Points: {user.points || 0}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -753,7 +806,7 @@ const ReassignModal = ({ activity, users, onClose, onReassign }) => {
               disabled={loading}
               className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
             >
-              {loading ? 'Reassigning...' : 'Reassign Activity'}
+              {loading ? 'Creating...' : 'Create Event'}
             </button>
             <button
               type="button"
@@ -769,151 +822,6 @@ const ReassignModal = ({ activity, users, onClose, onReassign }) => {
   );
 };
 
-// Activity Details Modal Component
-const ActivityDetailsModal = ({ activity, currentUser, users, onClose, onUpdate, onMarkComplete }) => {
-  const [points, setPoints] = useState(activity.points || 0);
-  const [remarks, setRemarks] = useState(activity.remarks || '');
-  const [proof, setProof] = useState(activity.proof || '');
-  const isAdmin = currentUser?.role === 'admin';
-  const isAssignedToMe = activity.assignedTo?._id === currentUser?.id || activity.assignedTo === currentUser?.id;
-
-  const handleUpdatePoints = async () => {
-    if (points !== activity.points) {
-      await onUpdate(activity._id || activity.id, { points });
-    }
-  };
-
-  const handleStatusUpdate = async (newStatus) => {
-    await onUpdate(activity._id || activity.id, { status: newStatus, remarks });
-  };
-
-  const handleCompleteWithProof = async () => {
-    const proofUrl = prompt('Enter proof URL (image link):', proof);
-    if (proofUrl) {
-      await onMarkComplete(activity._id || activity.id, proofUrl);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">Activity Details</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <XCircleIcon className="w-6 h-6" />
-          </button>
-        </div>
-        
-        <div className="p-6 space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{activity.title}</h3>
-            {activity.description && (
-              <p className="mt-1 text-sm text-gray-600">{activity.description}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500">Event</label>
-              <p className="mt-1 text-sm font-medium text-gray-900">{activity.eventId?.name || activity.eventId?.title}</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500">Assigned To</label>
-              <p className="mt-1 text-sm font-medium text-gray-900">{activity.assignedTo?.name || 'Unassigned'}</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500">Priority</label>
-              <p className="mt-1 text-sm font-medium text-gray-900">{activity.priority || 'Medium'}</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500">Deadline</label>
-              <p className="mt-1 text-sm font-medium text-gray-900">
-                {activity.deadline ? new Date(activity.deadline).toLocaleDateString() : 'No deadline'}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Points</label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={points}
-                onChange={(e) => setPoints(parseInt(e.target.value) || 0)}
-                disabled={!isAdmin}
-                className="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
-              />
-              {isAdmin && (
-                <button
-                  onClick={handleUpdatePoints}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Update
-                </button>
-              )}
-            </div>
-          </div>
-
-          {activity.proof && (
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Proof</label>
-              <a href={activity.proof} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
-                View Uploaded Proof
-              </a>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Remarks</label>
-            <textarea
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              rows="3"
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Add remarks..."
-              disabled={!isAdmin && !isAssignedToMe}
-            />
-          </div>
-
-          {!isAdmin && isAssignedToMe && activity.status === 'pending' && (
-            <button
-              onClick={handleCompleteWithProof}
-              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2"
-            >
-              <CheckCircleIcon className="w-5 h-5" />
-              Mark as Completed & Upload Proof
-            </button>
-          )}
-
-          {isAdmin && activity.status === 'completed' && (
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleStatusUpdate('approved')}
-                className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-medium"
-              >
-                Approve Activity
-              </button>
-              <button
-                onClick={() => handleStatusUpdate('cancelled')}
-                className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-medium"
-              >
-                Reject Activity
-              </button>
-            </div>
-          )}
-
-          <div className="pt-4 border-t">
-            <p className="text-xs text-gray-400">
-              Created: {new Date(activity.createdAt).toLocaleString()}
-              {activity.updatedAt && activity.updatedAt !== activity.createdAt && (
-                <span className="ml-4">Last updated: {new Date(activity.updatedAt).toLocaleString()}</span>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default ActivityPage;
+
+
