@@ -1,38 +1,55 @@
-import React, { useState,useEffect } from 'react';
-// import { createVolunteer } from '../services/volunteerService'; // Adjust import path as needed
+import React, { useState, useEffect } from 'react';
 import axios from "axios"
+
 const CreateVolunteerForm = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'volunteer', // Default role
-    eventsId:''
+    role: 'volunteer',
+    eventId: ''
   });
-  const [eventsData, setEvents] = useState([]); // store list her
-    console.log("volunteer creation",formData.eventsId , eventsData);
-    
-   let eventUrl = "http://localhost:5000/api/events/upcoming";
+  
+  const [eventsData, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const roles = [
     { value: 'volunteer', label: 'Volunteer' },
-    { value: 'admin', label: 'Admin' }
+    { value: 'admin', label: 'Admin' },
   ];
 
-  
-  // const events=[{value:"techtonic",label:'techtonic'},{value:"mindmesh",label:'mindmesh'}]
-  const fetchEvents=async () =>{
-    let data=await axios.get(eventUrl)
-    console.log(data.data.data)
-    setEvents(data.data.data)
-  }
+  const fetchEvents = async () => {
+    try {
+      const eventUrl = "http://localhost:5000/api/events/upcoming";
+      const token = localStorage.getItem("token");
+      
+      const response = await axios.get(eventUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      const eventsArray = response.data.data;
+      
+      if (Array.isArray(eventsArray)) {
+        setEvents(eventsArray);
+        console.log("Events loaded:", eventsArray.length);
+      } else {
+        console.error("Expected array but got:", eventsArray);
+        setEvents([]);
+      }
+      
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      setError("Failed to load events");
+    }
+  };
+
   useEffect(() => {
-    fetchEvents()
-  }, [])
-  
+    fetchEvents();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,7 +57,6 @@ const CreateVolunteerForm = () => {
       ...prev,
       [name]: value
     }));
-    // Clear messages when user starts typing
     setError('');
     setSuccess('');
   };
@@ -71,66 +87,80 @@ const CreateVolunteerForm = () => {
       setError('Role is required');
       return false;
     }
-    if(!formData.eventsId){
-      setError('event is required')
+    if (!formData.eventId) {
+      setError('Event is required');
       return false;
     }
     return true;
   };
 
-  const VolunteerUrl="http://localhost:5000/api/create-user"
+  const VolunteerUrl = "http://localhost:5000/api/create-user";
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!validateForm()) {
-    return;
-  }
+    if (!validateForm()) {
+      return;
+    }
 
-  setLoading(true);
-  setError('');
-  setSuccess('');
+    setLoading(true);
+    setError('');
+    setSuccess('');
 
-  try {
-    const token = localStorage.getItem("token"); // ✅ get token
-    console.log("in try block",formData.eventsId);
-    
-    const response = await axios.post(
-      VolunteerUrl,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`, // 🔥 send token
-        },
-      }
-    );
+    try {
+      const token = localStorage.getItem("token");
+      console.log("Selected Event ID:", formData.eventId);
+      
+      // ✅ Simple payload - just send eventId
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        eventId: formData.eventId  // Send single event ID
+      };
 
-    console.log("response", response);
+      console.log("Sending payload:", payload);
 
-    setSuccess(`Volunteer "${formData.name}" created successfully!`);
+      const response = await axios.post(
+        VolunteerUrl,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        }
+      );
 
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      role: 'volunteer',
-      eventsId:''
-    });
+      console.log("Response:", response.data);
 
-    setTimeout(() => setSuccess(''), 3000);
+      setSuccess(`Volunteer "${formData.name}" created successfully and assigned to event!`);
 
-  } catch (err) {
-    console.log(err.response); // 🔍 debug
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        role: 'volunteer',
+        eventId: ''
+      });
 
-    setError(
-      err.response?.data?.error || 
-      err.message || 
-      'Failed to create volunteer. Please try again.'
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      setTimeout(() => setSuccess(''), 3000);
+
+    } catch (err) {
+      console.log("Error details:", err.response?.data);
+      
+      setError(
+        err.response?.data?.message || 
+        err.response?.data?.error || 
+        err.message || 
+        'Failed to create volunteer. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleReset = () => {
     setFormData({
@@ -138,7 +168,7 @@ const handleSubmit = async (e) => {
       email: '',
       password: '',
       role: 'volunteer',
-      eventsId:''
+      eventId: ''
     });
     setError('');
     setSuccess('');
@@ -246,29 +276,32 @@ const handleSubmit = async (e) => {
             ))}
           </select>
         </div>
-
-         {/* events Field */}
+            
+        {/* Events Field */}
         <div>
           <label htmlFor="events" className="block text-sm font-medium text-gray-700 mb-1">
-            events *
+            Assign Event *
           </label>
           <select
             id="events"
-            name="eventsId"
-            value={formData.eventsId}
+            name="eventId"
+            value={formData.eventId}
             onChange={handleChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            disabled={loading}
+            disabled={loading || eventsData.length === 0}
           >
-           <option value="" disabled>
-                {eventsData.length === 0 ? "Loading events..." : "Select Event"}
-              </option>
+            <option value="" disabled>
+              {eventsData.length === 0 ? "Loading events..." : "Select Event"}
+            </option>
             {eventsData.map(event => (
               <option key={event._id} value={event._id}>
-                {event.title}
+                {event.title} - {new Date(event.date).toLocaleDateString()}
               </option>
             ))}
           </select>
+          {eventsData.length === 0 && !loading && (
+            <p className="mt-1 text-xs text-red-500">No events available. Please create an event first.</p>
+          )}
         </div>
 
         {/* Action Buttons */}

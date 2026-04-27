@@ -50,39 +50,98 @@ const loginUser = async (req, res) => {
   }
 };
 
-// ✅ ADMIN CREATES USER
+//  ADMIN CREATES USER
+//  ADMIN CREATES USER (Simplified - only event IDs)
 const createUserByAdmin = async (req, res) => {
   try {
-    const { name, email, password, role , events } = req.body;
+    const { name, email, password, role, eventId } = req.body;
 
+    // Check if user exists
     const existing = await User.findOne({ email });
     if (existing) {
-      return res.status(400).json({
-        success: false,
-        error: "User already exists",
-      });
+      return res.status(400).json({ error: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Prepare eventRoles array if eventId is provided
+    let eventRoles = [];
+    if (eventId) {
+      eventRoles = [eventId];  // ✅ Just store the event ID directly
+    }
 
+    // Create user
     const user = await User.create({
       name,
       email,
-      password: hashedPassword,
-      role,
-      events
+      password: await bcrypt.hash(password, 10),
+      role: role || "volunteer",
+      eventRoles: eventRoles  // ✅ Array of event IDs
     });
+
+    // Populate the event details in response
+    const populatedUser = await User.findById(user._id).populate('eventRoles');
 
     res.status(201).json({
       success: true,
-      message: "User created by admin",
-      data: user,
+      data: populatedUser,
+    });
+
+  } catch (error) {
+    console.error("Create user error:", error);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// Update user function (simplified)
+const updateUser = async (req, res) => {
+  try {
+    const { name, email, eventId } = req.body;
+
+    const user = await User.findById(req.params.id);
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (name) user.name = name;
+    if (email) user.email = email;
+
+    // ✅ Update eventRoles - add new event ID to array
+    if (eventId) {
+      if (!user.eventRoles.includes(eventId)) {
+        user.eventRoles.push(eventId);
+      }
+    }
+
+    await user.save();
+
+    // Populate events
+    const populatedUser = await User.findById(user._id).populate('eventRoles');
+
+    res.json({ success: true, data: populatedUser });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Remove event from volunteer
+const deleteUser = async (req, res) => {
+  try {
+    const { userId, eventId } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.eventRoles = user.eventRoles.filter(
+      id => id.toString() !== eventId
+    );
+
+    await user.save();
+
+    res.json({ 
+      success: true, 
+      message: "Event removed from volunteer",
+      data: user 
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message,
-    });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -125,5 +184,7 @@ module.exports = {
   loginUser,
   createUserByAdmin,
   registerUser,
-  getMe
+  getMe,
+  deleteUser,
+  updateUser
 };

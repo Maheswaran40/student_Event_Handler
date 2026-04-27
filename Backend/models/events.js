@@ -31,7 +31,6 @@ const eventSchema = new mongoose.Schema({
   },
   incharge: {
     type: String,
-    required: [true, 'Event incharge is required'],
     trim: true
   },
   maxParticipants: {

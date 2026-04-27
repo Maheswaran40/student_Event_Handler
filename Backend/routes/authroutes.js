@@ -2,10 +2,12 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
+
 const {
   loginUser,
   createUserByAdmin,
-  registerUser
+  registerUser,
+  deleteUser,updateUser
 // } = require("../controllers/authController");
 } = require("../controller/authController");
 
@@ -14,6 +16,8 @@ const studentRegister = require("../models/studentRegister");
 // Login
 router.post("/login", loginUser);
 router.post("/registerUser", registerUser);
+router.put("/update-user/:id", protect, adminOnly, updateUser);
+router.delete("/delete-user/:id", protect, adminOnly, deleteUser);
 router.get("/me", protect, async (req, res) => {
   try {
     // 1. Get user + events only
@@ -36,6 +40,7 @@ router.get("/me", protect, async (req, res) => {
         students: students
       }
     });
+    console.log("user",user,"eventIds",eventIds,"students",students)
 
   } catch (error) {
     res.status(500).json({ message: error.message });

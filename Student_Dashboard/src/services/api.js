@@ -69,9 +69,13 @@ export const eventsService = {
   //     throw error; // Throw error so component can handle it
   //   }
   // },
+
   createEvent: async (eventData) => {
     try {
       let dataToSend;
+
+      // 🔥 GET TOKEN
+      const token = localStorage.getItem("token");
 
       // 🔥 check if file exists
       if (eventData.imageFile) {
@@ -86,17 +90,20 @@ export const eventsService = {
         dataToSend.append("status", eventData.status);
         dataToSend.append("gradientColor", eventData.gradientColor);
         dataToSend.append("tagline", eventData.tagline || "");
-        //  file
         dataToSend.append("image", eventData.imageFile);
       } else {
-        // normal JSON (no image case)
         dataToSend = eventData;
       }
 
       const res = await axios.post(EventUrl, dataToSend, {
-        headers: eventData.imageFile
-          ? { "Content-Type": "multipart/form-data" }
-          : {},
+        headers: {
+          ...(eventData.imageFile && {
+            "Content-Type": "multipart/form-data",
+          }),
+          
+          // 🔥 ADD THIS LINE (MOST IMPORTANT)
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       return res.data.data;

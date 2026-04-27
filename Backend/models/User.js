@@ -20,10 +20,12 @@ const userSchema = new mongoose.Schema({
     enum: ["admin", "volunteer"],
     default: "volunteer",
   },
-  events: [{  // Array of event IDs that this volunteer manages
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Event"
-  }],
+ eventRoles: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Event",
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now

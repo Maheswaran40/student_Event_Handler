@@ -1,922 +1,1139 @@
-// pages/ActivityPage.jsx
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Toaster, toast } from 'react-hot-toast';
-import { 
-  CalendarIcon, 
-  UserIcon, 
-  TrophyIcon, 
-  CheckCircleIcon, 
-  XCircleIcon,
-  ClockIcon,
-  EyeIcon,
-  ArrowPathIcon,
-  PlusIcon,
-  MagnifyingGlassIcon,
-  FlagIcon,
-  DocumentTextIcon
-} from '@heroicons/react/24/outline';
-import Sidebar from '../components/Sidebar';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import Sidebar from "../components/Sidebar";
+import { eventsService } from "../services/api";
+import { userService } from "../services/api";
 
-// Import services from your existing API
-import { eventsService, userService } from '../services/api';
+import {
+  FiUsers,
+  FiCalendar,
+  FiTrendingUp,
+  FiStar,
+  FiEdit2,
+  FiTrash2,
+  FiPlus,
+  FiX,
+  FiSearch,
+  FiFilter,
+  FiDownload,
+  FiMail,
+  FiCheckCircle,
+  FiClock,
+  FiAlertCircle,
+  FiBarChart2,
+  FiUserPlus,
+  FiSettings,
+  FiEye,
+  FiSave,
+  FiUserCheck,
+  FiUserX,
+} from "react-icons/fi";
+import toast from "react-hot-toast";
+import ImageUpload from "../components/ImageUpload";
 
-const ActivityPage = ({ sharedEvents, sharedUsers, currentUser: propUser }) => {
-  const [activities, setActivities] = useState([]);
+const AdminPanel = () => {
+  const { user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [selectedActivity, setSelectedActivity] = useState(null);
-  const [filterEvent, setFilterEvent] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [searchTitle, setSearchTitle] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showReassignModal, setShowReassignModal] = useState(false);
-  const [selectedActivityForReassign, setSelectedActivityForReassign] = useState(null);
-  const [users, setUsers] = useState(sharedUsers || []);
-  const [events, setEvents] = useState(sharedEvents || []);
-  const [currentUser, setCurrentUser] = useState(propUser);
-  const [stats, setStats] = useState({
-    total: 0,
-    completed: 0,
-    pending: 0,
-    approved: 0,
-    cancelled: 0,
-    totalPoints: 0
+  const [events, setEvents] = useState([]);
+  const [users, setUsers] = useState([]);
+  const[StudentCount,SetStudentCount]=useState(0)
+  const [activeTab, setActiveTab] = useState("overview");
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    date: "",
+    time: "",
+    venue: "",
+    incharge: "",
+    maxParticipants: "",
+    image: "",
+    gradientColor: "from-indigo-500 to-purple-600",
+    tagline:"",
+    imageFile: null  // ✅ Added missing field
   });
 
-  const API_BASE_URL = 'http://localhost:5000/api';
-  const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-      'Content-Type': 'application/json',
+// console.log("users",users.length)
+
+  // Create a gradient options constant at the top of your component or in a separate file
+  const gradientOptions = [
+    {
+      id: 1,
+      name: "Indigo to Purple",
+      value: "from-indigo-500 to-purple-600",
+      preview: "bg-gradient-to-r from-indigo-500 to-purple-600",
     },
-  });
+    {
+      id: 2,
+      name: "Amber to Red",
+      value: "from-amber-500 to-red-600",
+      preview: "bg-gradient-to-r from-amber-500 to-red-600",
+    },
+    {
+      id: 3,
+      name: "Emerald to Teal",
+      value: "from-emerald-500 to-teal-600",
+      preview: "bg-gradient-to-r from-emerald-500 to-teal-600",
+    },
+    {
+      id: 4,
+      name: "Pink to Rose",
+      value: "from-pink-500 to-rose-600",
+      preview: "bg-gradient-to-r from-pink-500 to-rose-600",
+    },
+    {
+      id: 5,
+      name: "Slate to Gray",
+      value: "from-slate-700 to-gray-900",
+      preview: "bg-gradient-to-r from-slate-700 to-gray-900",
+    },
+    {
+      id: 6,
+      name: "Blue to Cyan",
+      value: "from-blue-500 to-cyan-600",
+      preview: "bg-gradient-to-r from-blue-500 to-cyan-600",
+    },
+    {
+      id: 7,
+      name: "Orange to Yellow",
+      value: "from-orange-500 to-yellow-600",
+      preview: "bg-gradient-to-r from-orange-500 to-yellow-600",
+    },
+    {
+      id: 8,
+      name: "Purple to Pink",
+      value: "from-purple-500 to-pink-600",
+      preview: "bg-gradient-to-r from-purple-500 to-pink-600",
+    },
+  ];
 
-  // Add auth token to requests
-  const token = localStorage.getItem('token');
-  if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  }
+  useEffect(() => {
+    if (!isAdmin) {
+      toast.error("Access denied. Admin privileges required.");
+      return;
+    }
+    fetchData();
+  }, [isAdmin]);
 
-  // Fetch activities
-  const fetchActivities = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await api.get('/activities');
-      if (response.data.success) {
-        setActivities(response.data.data);
-        calculateStats(response.data.data);
-      // } else if (activitiesService) {
-      //   // Fallback to your existing service
-      //   const data = await activitiesService.getAllActivities();
-      //   setActivities(data);
-      //   calculateStats(data);
-      }
+      const eventsData = await eventsService.getAllEvents();
+      setEvents(eventsData);
+      const studentsData = await userService.getProfile();
+      SetStudentCount(studentsData.count) 
+console.log(studentsData.data)
+
+      // Transform student data to match your UI expectations
+      const transformedUsers = studentsData.map((student) => ({
+        id: student._id || student.id,
+        name: student.name || student.fullName,
+        email: student.email,
+        phone:
+          student.phoneNo || student.mobile || student.phoneNumber || "N/A", //  Add this
+        role: student.rollNo || "user",
+        eventsAttended: student.eventsAttended?.length || 0,
+        joinDate: student.createdAt?.split("T")[0],
+        status: student.isActive ? "active" : "inactive",
+        tagline:student.tagline
+      }));
+      setUsers(transformedUsers);
     } catch (error) {
-      console.error('Error fetching activities:', error);
-      toast.error('Failed to fetch activities');
-      // Use mock data for demo if API fails
-      setActivities(getMockActivities());
-      calculateStats(getMockActivities());
+      toast.error("Failed to fetch data");
     } finally {
       setLoading(false);
     }
   };
 
-  // Calculate statistics
-  const calculateStats = (activitiesData) => {
-    const completed = activitiesData.filter(a => a.status === 'completed');
-    const pending = activitiesData.filter(a => a.status === 'pending');
-    const approved = activitiesData.filter(a => a.status === 'approved');
-    const cancelled = activitiesData.filter(a => a.status === 'cancelled');
-    const totalPoints = activitiesData.reduce((sum, a) => sum + (a.points || 0), 0);
-    
-    setStats({
-      total: activitiesData.length,
-      completed: completed.length,
-      pending: pending.length,
-      approved: approved.length,
-      cancelled: cancelled.length,
-      totalPoints: totalPoints
-    });
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Create new activity
-  const createActivity = async (activityData) => {
+  // ✅ FIXED: Corrected handleCreateEvent
+  const handleCreateEvent = async () => {
+    // Validate required fields
+    if (
+      !formData.title ||
+      !formData.date ||
+      !formData.venue ||
+      !formData.incharge
+    ) {
+      toast.error(
+        "Please fill in all required fields (title, date, venue, incharge)",
+      );
+      return;
+    }
+
     try {
-      const response = await api.post('/activities', activityData);
-      if (response.data.success) {
-        toast.success('Activity created and assigned successfully');
-        setShowCreateModal(false);
-        fetchActivities();
-        return true;
-      }
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || 'Failed to create activity';
-      toast.error(errorMsg);
-      return false;
-    }
-  };
-
-  // Update activity
-  const updateActivity = async (id, updates) => {
-    try {
-      const response = await api.put(`/activities/${id}`, updates);
-      if (response.data.success) {
-        toast.success('Activity updated successfully');
-        fetchActivities();
-        if (selectedActivity?._id === id) {
-          setSelectedActivity(response.data.data);
-        }
-        return true;
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to update activity');
-      return false;
-    }
-  };
-
-  // Mark as completed with proof
-  const markAsCompleted = async (id, proofUrl) => {
-    try {
-      const response = await api.patch(`/activities/${id}/complete`, { proof: proofUrl });
-      if (response.data.success) {
-        toast.success('Activity marked as completed! Waiting for admin approval.');
-        fetchActivities();
-        return true;
-      }
-    } catch (error) {
-      toast.error('Failed to mark as completed');
-      return false;
-    }
-  };
-
-  // Delete activity
-  const deleteActivity = async (id) => {
-    if (window.confirm('Are you sure you want to delete this activity?')) {
-      try {
-        const response = await api.delete(`/activities/${id}`);
-        if (response.data.success) {
-          toast.success('Activity deleted successfully');
-          fetchActivities();
-          if (selectedActivity?._id === id) {
-            setSelectedActivity(null);
-          }
-        }
-      } catch (error) {
-        toast.error('Failed to delete activity');
-      }
-    }
-  };
-
-  // Mock data for initial demo
-  const getMockActivities = () => {
-    return [
-      {
-        id: 'act1',
-        title: 'Welcome Desk Setup',
-        description: 'Arrange registration booth and welcome kits',
-        eventId: events[0]?._id || events[0]?.id,
-        eventName: events[0]?.title || 'Tech Symposium',
-        assignedTo: users[0],
-        status: 'approved',
-        priority: 'High',
-        deadline: '2025-05-09',
-        proof: 'https://picsum.photos/id/20/200/150',
-        points: 50,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'act2',
-        title: 'Volunteer Coordination',
-        description: 'Manage volunteer shifts and duties',
-        eventId: events[1]?._id || events[1]?.id,
-        eventName: events[1]?.title || 'Beach Cleanup',
-        assignedTo: users[1],
-        status: 'pending',
-        priority: 'High',
-        deadline: '2025-05-15',
-        points: 30,
-        createdAt: new Date().toISOString()
-      }
-    ];
-  };
-
-  useEffect(() => {
-    // Use shared data if provided, otherwise fetch
-    if (sharedEvents && sharedEvents.length > 0) {
-      setEvents(sharedEvents);
-    }
-    if (sharedUsers && sharedUsers.length > 0) {
-      setUsers(sharedUsers.filter(u => u.role === 'volunteer' || u.role === 'student'));
-    }
-    if (propUser) {
-      setCurrentUser(propUser);
-    }
-    fetchActivities();
-  }, [sharedEvents, sharedUsers, propUser]);
-
-  // Filter activities
-  const filteredActivities = activities.filter(activity => {
-    const eventIdMatch = filterEvent ? 
-      (activity.eventId === filterEvent || activity.eventId?._id === filterEvent) : true;
-    const statusMatch = filterStatus ? activity.status === filterStatus : true;
-    const searchMatch = searchTitle ? 
-      activity.title?.toLowerCase().includes(searchTitle.toLowerCase()) : true;
-    return eventIdMatch && statusMatch && searchMatch;
-  });
-
-  const isAdmin = currentUser?.role === 'admin';
-
-  // Status badge component
-  const StatusBadge = ({ status }) => {
-    const styles = {
-      pending: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-      approved: 'bg-green-100 text-green-800 border border-green-200',
-      completed: 'bg-blue-100 text-blue-800 border border-blue-200',
-      cancelled: 'bg-red-100 text-red-800 border border-red-200'
-    };
-    const icons = {
-      pending: <ClockIcon className="w-3 h-3 mr-1" />,
-      approved: <CheckCircleIcon className="w-3 h-3 mr-1" />,
-      completed: <TrophyIcon className="w-3 h-3 mr-1" />,
-      cancelled: <XCircleIcon className="w-3 h-3 mr-1" />
-    };
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${styles[status]}`}>
-        {icons[status]}
-        {status.toUpperCase()}
-      </span>
-    );
-  };
-
-  const PriorityBadge = ({ priority }) => {
-    const styles = {
-      High: 'bg-red-100 text-red-800',
-      Medium: 'bg-yellow-100 text-yellow-800',
-      Low: 'bg-green-100 text-green-800'
-    };
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${styles[priority] || styles.Medium}`}>
-        <FlagIcon className="w-3 h-3 mr-1" />
-        {priority || 'Medium'}
-      </span>
-    );
-  };
-
-  return (
-    <div className="bg-gray-50 min-h-screen">
-      <Toaster position="top-right" />
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
       
-      {/* Header */}
-      <div className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-6 py-6">
-          <div className="flex flex-wrap justify-between items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Activity Management
-              </h1>
-              <p className="mt-1 text-sm text-gray-500">
-                {isAdmin ? 'Manage and assign activities to volunteers' : 'View and manage your assigned activities'}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              {isAdmin && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md"
-                >
-                  <PlusIcon className="w-5 h-5" />
-                  Create Activity
-                </button>
-              )}
-              <button
-                onClick={fetchActivities}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-              >
-                <ArrowPathIcon className="w-5 h-5" />
-                Refresh
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      // Combine date and time into a single Date object
+      let eventDateTime;
+      if (formData.time) {
+        eventDateTime = new Date(`${formData.date}T${formData.time}`);
+      } else {
+        eventDateTime = new Date(formData.date);
+      }
 
-      {/* Main Content */}
-      <div className="px-6 py-8">
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Total Activities</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Pending</p>
-            <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Completed</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Approved</p>
-            <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-red-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Cancelled</p>
-            <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
-            <p className="text-xs text-gray-500">Total Points</p>
-            <p className="text-2xl font-bold text-purple-600">{stats.totalPoints}</p>
-          </div>
-        </div>
+      // Append all fields to FormData
+      formDataToSend.append("title", formData.title);
+      formDataToSend.append("description", formData.description);
+      formDataToSend.append("date", eventDateTime.toISOString());
+      formDataToSend.append("venue", formData.venue);
+      formDataToSend.append("incharge", formData.incharge);
+      formDataToSend.append("maxParticipants", parseInt(formData.maxParticipants) || 10);
+      formDataToSend.append("status", "upcoming");
+      formDataToSend.append("gradientColor", formData.gradientColor || "from-indigo-500 to-purple-600");
+      formDataToSend.append("tagline", formData.tagline);
+      
+      // Append image file if exists
+      if (formData.imageFile) {
+        formDataToSend.append("image", formData.imageFile);
+      }
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by activity title..."
-                value={searchTitle}
-                onChange={(e) => setSearchTitle(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <select
-              value={filterEvent}
-              onChange={(e) => setFilterEvent(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Events</option>
-              {events.map(event => (
-                <option key={event._id || event.id} value={event._id || event.id}>
-                  {event.title || event.name}
-                </option>
-              ))}
-            </select>
+      console.log("Sending to backend via FormData");
 
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-              <option value="approved">Approved</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-        </div>
+      // Send to API
+      const newEvent = await eventsService.createEvent(formDataToSend);
 
-        {/* Activities Table */}
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredActivities.map((activity) => (
-                    <tr key={activity._id || activity.id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{activity.title}</div>
-                        {activity.description && (
-                          <div className="text-xs text-gray-500 truncate max-w-xs">{activity.description}</div>
-                        )}
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {activity.eventId?.title || activity.eventId?.name || activity.eventName || 'N/A'}
-                        </div>
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <UserIcon className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-900">
-                            {activity.assignedTo?.name || 'Unassigned'}
-                          </span>
-                        </div>
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={activity.status} />
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <PriorityBadge priority={activity.priority} />
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <CalendarIcon className="w-4 h-4 mr-1" />
-                          {activity.deadline ? new Date(activity.deadline).toLocaleDateString() : 'No deadline'}
-                        </div>
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <TrophyIcon className="w-4 h-4 text-yellow-500 mr-1" />
-                          <span className="text-sm font-semibold text-gray-900">{activity.points || 0}</span>
-                        </div>
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            onClick={() => setSelectedActivity(activity)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
-                            title="View Details"
-                          >
-                            <EyeIcon className="w-5 h-5" />
-                          </button>
-                          
-                          {isAdmin ? (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setSelectedActivityForReassign(activity);
-                                  setShowReassignModal(true);
-                                }}
-                                className="p-1 text-purple-600 hover:bg-purple-50 rounded transition"
-                                title="Reassign Volunteer"
-                              >
-                                <UserIcon className="w-5 h-5" />
-                              </button>
-                              {activity.status === 'completed' && (
-                                <>
-                                  <button
-                                    onClick={() => updateActivity(activity._id || activity.id, { status: 'approved' })}
-                                    className="p-1 text-green-600 hover:bg-green-50 rounded transition"
-                                    title="Approve"
-                                  >
-                                    <CheckCircleIcon className="w-5 h-5" />
-                                  </button>
-                                  <button
-                                    onClick={() => updateActivity(activity._id || activity.id, { status: 'cancelled', remarks: 'Rejected by admin' })}
-                                    className="p-1 text-red-600 hover:bg-red-50 rounded transition"
-                                    title="Reject"
-                                  >
-                                    <XCircleIcon className="w-5 h-5" />
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                onClick={() => deleteActivity(activity._id || activity.id)}
-                                className="p-1 text-red-600 hover:bg-red-50 rounded transition"
-                                title="Delete"
-                              >
-                                <XCircleIcon className="w-5 h-5" />
-                              </button>
-                            </>
-                          ) : (
-                            activity.status === 'pending' && activity.assignedTo?._id === currentUser?.id && (
-                              <button
-                                onClick={() => {
-                                  const proofUrl = prompt('Enter proof URL (image link):');
-                                  if (proofUrl) markAsCompleted(activity._id || activity.id, proofUrl);
-                                }}
-                                className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
-                                title="Mark as Completed"
-                              >
-                                <CheckCircleIcon className="w-5 h-5" />
-                              </button>
-                            )
-                          )}
-                        </div>
-                       </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredActivities.length === 0 && (
-                <div className="text-center py-12">
-                  <DocumentTextIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No activities found</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      // Update local state with the actual response from backend
+      setEvents((prev) => [...prev, newEvent]);
+      toast.success("Event created successfully!");
+      setShowEventModal(false);
+      resetForm();
+      console.log("Event created:", newEvent);
+    } catch (error) {
+      console.error("Create event error:", error);
+      console.error("Error response:", error.response?.data);
 
-      {/* Modals - Keep your existing modal components here */}
-      {showCreateModal && (
-        <CreateActivityModal
-          events={events}
-          users={users.filter(u => u.role === 'volunteer' || u.role === 'student')}
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={createActivity}
-        />
-      )}
+      // Show detailed error message
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (error.response?.data?.errors) {
+        // Handle validation errors from mongoose
+        const errors = error.response.data.errors;
+        Object.values(errors).forEach((err) => toast.error(err.message || err));
+      } else {
+        toast.error("Failed to create event. Please check all fields.");
+      }
+    }
+  };
 
-      {showReassignModal && selectedActivityForReassign && (
-        <ReassignModal
-          activity={selectedActivityForReassign}
-          users={users.filter(u => u.role === 'volunteer' || u.role === 'student')}
-          onClose={() => {
-            setShowReassignModal(false);
-            setSelectedActivityForReassign(null);
-          }}
-          onReassign={async (activityId, newVolunteerId) => {
-            await updateActivity(activityId, { assignedTo: newVolunteerId });
-            setShowReassignModal(false);
-            setSelectedActivityForReassign(null);
-          }}
-        />
-      )}
+  // ✅ FIXED: Corrected handleUpdateEvent
+  const handleUpdateEvent = async () => {
+    try {
+      const formDataToSend = new FormData();
+      
+      let eventDateTime;
+      if (formData.time) {
+        eventDateTime = new Date(`${formData.date}T${formData.time}`);
+      } else {
+        eventDateTime = new Date(formData.date);
+      }
+      
+      formDataToSend.append("title", formData.title);
+      formDataToSend.append("description", formData.description);
+      formDataToSend.append("date", eventDateTime.toISOString());
+      formDataToSend.append("venue", formData.venue);
+      formDataToSend.append("incharge", formData.incharge);
+      formDataToSend.append("maxParticipants", parseInt(formData.maxParticipants) || 10);
+      formDataToSend.append("gradientColor", formData.gradientColor);
+      formDataToSend.append("tagline", formData.tagline);
+      
+      if (formData.imageFile) {
+        formDataToSend.append("image", formData.imageFile);
+      }
 
-      {selectedActivity && (
-        <ActivityDetailsModal
-          activity={selectedActivity}
-          currentUser={currentUser}
-          users={users}
-          onClose={() => setSelectedActivity(null)}
-          onUpdate={updateActivity}
-          onMarkComplete={markAsCompleted}
-        />
-      )}
-    </div>
+      await eventsService.updateEvent(editingEvent._id, formDataToSend);
+      const updatedEvents = events.map((event) =>
+        event.id === editingEvent._id ? { ...event, ...formData } : event,
+      );
+      setEvents(updatedEvents);
+      toast.success("Event updated successfully!");
+      setShowEventModal(false);
+      setEditingEvent(null);
+      resetForm();
+    } catch (error) {
+      toast.error("Failed to update event");
+    }
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    if (window.confirm("Are you sure you want to delete this event?")) {
+      console.log("Deleting event with ID:", eventId);
+
+      try {
+        await eventsService.deleteEvent(eventId);
+        setEvents(events.filter((event) => event.id !== eventId));
+        toast.success("Event deleted successfully!");
+      } catch (error) {
+        toast.error("Failed to delete event");
+      }
+    }
+  };
+
+  const handleEditEvent = (event) => {
+    setEditingEvent(event);
+    setFormData({
+      title: event.title,
+      description: event.description,
+      date: event.date,
+      time: event.time,
+      venue: event.venue,
+      incharge: event.incharge,
+      maxParticipants: event.maxParticipants || "",
+      image: event.image || "",
+      gradientColor: event.gradientColor || "from-indigo-500 to-purple-600",
+      tagline: event.tagline,
+      imageFile: null
+    });
+    setShowEventModal(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      date: "",
+      time: "",
+      venue: "",
+      incharge: "",
+      maxParticipants: "",
+      image: "",
+      gradientColor: "from-indigo-500 to-purple-600",
+      tagline: "",
+      imageFile: null
+    });
+    setEditingEvent(null);
+  };
+
+  const handleUserAction = (userId, action) => {
+    if (action === "block") {
+      setUsers(
+        users.map((user) =>
+          user.id === userId ? { ...user, status: "blocked" } : user,
+        ),
+      );
+      toast.success("User blocked successfully");
+    } else if (action === "activate") {
+      setUsers(
+        users.map((user) =>
+          user.id === userId ? { ...user, status: "active" } : user,
+        ),
+      );
+      toast.success("User activated successfully");
+    } else if (action === "makeAdmin") {
+      setUsers(
+        users.map((user) =>
+          user.id === userId ? { ...user, role: "admin" } : user,
+        ),
+      );
+      toast.success("User promoted to admin");
+    }
+  };
+
+  const getStats = () => {
+    const totalEvents = events.length;
+    const upcomingEvents = events.filter(
+      (e) => new Date(e.date) > new Date(),
+    ).length;
+    const totalAttendees = events.reduce((sum, e) => sum + e.attendees, 0);
+    const activeUsers = users.filter((u) => u.status === "active").length;
+    const totalRevenue = events.reduce((sum, e) => sum + e.attendees * 50, 0); // Mock revenue calculation
+
+    return {
+      totalEvents,
+      upcomingEvents,
+      totalAttendees,
+      activeUsers,
+      totalRevenue,
+    };
+  };
+
+  const stats = getStats();
+  const filteredEvents = events.filter(
+    (event) =>
+      event.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (selectedCategory === "all" || event.category === selectedCategory),
   );
-};
 
-// Modal Components (same as before, keep them here)
-const CreateActivityModal = ({ events, users, onClose, onSubmit }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    eventId: '',
-    assignedTo: '',
-    priority: 'Medium',
-    deadline: '',
-    points: 0
-  });
-  const [loading, setLoading] = useState(false);
+  const categories = ["all", ...new Set(events.map((e) => e.category))];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.title || !formData.eventId || !formData.assignedTo) {
-      toast.error('Please fill all required fields');
-      return;
-    }
-    setLoading(true);
-    await onSubmit(formData);
-    setLoading(false);
-  };
+    // event search function in dashboard admin pannel start
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Create New Activity
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <XCircleIcon className="w-6 h-6" />
-          </button>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-            <input
-              type="text"
-              required
-              value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Enter activity title"
-            />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              rows="3"
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Describe the activity..."
-            />
-          </div>
+  const[eventSearchData,setEventSearchData] = useState("");
+  function eventSearch(e) {
+    setEventSearchData(e.target.value);
+  }
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Event *</label>
-            <select
-              required
-              value={formData.eventId}
-              onChange={(e) => setFormData({...formData, eventId: e.target.value})}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              <option value="">Select Event</option>
-              {events.map(event => (
-                <option key={event._id || event.id} value={event._id || event.id}>
-                  {event.title || event.name}
-                </option>
-              ))}
-            </select>
-          </div>
+  // event search function in dashboard admin pannel end
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Assign Volunteer *</label>
-            <select
-              required
-              value={formData.assignedTo}
-              onChange={(e) => setFormData({...formData, assignedTo: e.target.value})}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              <option value="">Select Volunteer</option>
-              {users.map(user => (
-                <option key={user._id || user.id} value={user._id || user.id}>
-                  {user.name} - {user.email}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
-              <input
-                type="date"
-                value={formData.deadline}
-                onChange={(e) => setFormData({...formData, deadline: e.target.value})}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
-            <input
-              type="number"
-              value={formData.points}
-              onChange={(e) => setFormData({...formData, points: parseInt(e.target.value) || 0})}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Points to award"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 font-medium"
-            >
-              {loading ? 'Creating...' : 'Create Activity'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 font-medium"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const ReassignModal = ({ activity, users, onClose, onReassign }) => {
-  const [selectedVolunteer, setSelectedVolunteer] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedVolunteer) {
-      toast.error('Please select a volunteer');
-      return;
-    }
-    setLoading(true);
-    await onReassign(activity._id || activity.id, selectedVolunteer);
-    setLoading(false);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="border-b p-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">Reassign Activity</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <XCircleIcon className="w-6 h-6" />
-          </button>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Activity: <span className="font-semibold">{activity.title}</span>
-            </label>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select New Volunteer *</label>
-            <select
-              required
-              value={selectedVolunteer}
-              onChange={(e) => setSelectedVolunteer(e.target.value)}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              <option value="">Select Volunteer</option>
-              {users.map(user => (
-                <option key={user._id || user.id} value={user._id || user.id}>
-                  {user.name} - {user.email}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
-            >
-              {loading ? 'Reassigning...' : 'Reassign Activity'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 font-medium"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const ActivityDetailsModal = ({ activity, currentUser, users, onClose, onUpdate, onMarkComplete }) => {
-  const [points, setPoints] = useState(activity.points || 0);
-  const [remarks, setRemarks] = useState(activity.remarks || '');
-  const isAdmin = currentUser?.role === 'admin';
-  const isAssignedToMe = activity.assignedTo?._id === currentUser?.id || activity.assignedTo === currentUser?.id;
-
-  const handleUpdatePoints = async () => {
-    if (points !== activity.points) {
-      await onUpdate(activity._id || activity.id, { points });
-    }
-  };
-
-  const handleStatusUpdate = async (newStatus) => {
-    await onUpdate(activity._id || activity.id, { status: newStatus, remarks });
-  };
-
-  const handleCompleteWithProof = async () => {
-    const proofUrl = prompt('Enter proof URL (image link):', activity.proof || '');
-    if (proofUrl) {
-      await onMarkComplete(activity._id || activity.id, proofUrl);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">Activity Details</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <XCircleIcon className="w-6 h-6" />
-          </button>
-        </div>
-        
-        <div className="p-6 space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{activity.title}</h3>
-            {activity.description && (
-              <p className="mt-1 text-sm text-gray-600">{activity.description}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500">Event</label>
-              <p className="mt-1 text-sm font-medium text-gray-900">
-                {activity.eventId?.title || activity.eventId?.name || activity.eventName}
-              </p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500">Assigned To</label>
-              <p className="mt-1 text-sm font-medium text-gray-900">{activity.assignedTo?.name || 'Unassigned'}</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500">Priority</label>
-              <p className="mt-1 text-sm font-medium text-gray-900">{activity.priority || 'Medium'}</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500">Deadline</label>
-              <p className="mt-1 text-sm font-medium text-gray-900">
-                {activity.deadline ? new Date(activity.deadline).toLocaleDateString() : 'No deadline'}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Points</label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={points}
-                onChange={(e) => setPoints(parseInt(e.target.value) || 0)}
-                disabled={!isAdmin}
-                className="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
-              />
-              {isAdmin && (
-                <button
-                  onClick={handleUpdatePoints}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Update
-                </button>
-              )}
-            </div>
-          </div>
-
-          {activity.proof && (
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Proof</label>
-              <a href={activity.proof} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
-                View Uploaded Proof
-              </a>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Remarks</label>
-            <textarea
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              rows="3"
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Add remarks..."
-              disabled={!isAdmin && !isAssignedToMe}
-            />
-          </div>
-
-          {!isAdmin && isAssignedToMe && activity.status === 'pending' && (
-            <button
-              onClick={handleCompleteWithProof}
-              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2"
-            >
-              <CheckCircleIcon className="w-5 h-5" />
-              Mark as Completed & Upload Proof
-            </button>
-          )}
-
-          {isAdmin && activity.status === 'completed' && (
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleStatusUpdate('approved')}
-                className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-medium"
-              >
-                Approve Activity
-              </button>
-              <button
-                onClick={() => handleStatusUpdate('cancelled')}
-                className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-medium"
-              >
-                Reject Activity
-              </button>
-            </div>
-          )}
-
-          <div className="pt-4 border-t">
-            <p className="text-xs text-gray-400">
-              Created: {new Date(activity.createdAt).toLocaleString()}
-              {activity.updatedAt && activity.updatedAt !== activity.createdAt && (
-                <span className="ml-4">Last updated: {new Date(activity.updatedAt).toLocaleString()}</span>
-              )}
+  if (!isAdmin) {
+    return (
+      <div className="flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-8">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+            <FiAlertCircle className="text-6xl text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-red-800 mb-2">
+              Access Denied
+            </h2>
+            <p className="text-red-600">
+              You don't have permission to access this page.
             </p>
           </div>
         </div>
       </div>
+    );
+  }
+
+
+  
+
+  return (
+    <div className="flex bg-gray-50 min-h-screen">
+      <Sidebar />
+      <div className="flex-1 ml-64">
+        <div className="max-w-7xl mx-auto px-8 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Admin Panel
+            </h1>
+            <p className="text-gray-600">
+              Manage events, users, and monitor platform activity
+            </p>
+          </div>
+
+          {/* Tabs */}
+          <div className="border-b border-gray-200 mb-8">
+            <div className="flex space-x-8">
+              {[
+                { id: "overview", label: "Overview", icon: FiBarChart2 },
+                { id: "events", label: "Events", icon: FiCalendar },
+                { id: "users", label: "Users", icon: FiUsers },
+                { id: "settings", label: "Settings", icon: FiSettings },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`pb-3 px-1 flex items-center space-x-2 transition-colors ${
+                    activeTab === tab.id
+                      ? "border-b-2 border-primary-600 text-primary-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  <tab.icon />
+                  <span className="font-medium">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Overview Tab */}
+          {activeTab === "overview" && (
+            <div className="space-y-8 animate-fade-in">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <div className="bg-white rounded-xl shadow-md p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Total Events</p>
+                      <p className="text-2xl font-bold text-gray-800 mt-1">
+                        {stats.totalEvents}
+                      </p>
+                    </div>
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <FiCalendar className="text-blue-600 text-xl" />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-md p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Upcoming Events</p>
+                      <p className="text-2xl font-bold text-gray-800 mt-1">
+                        {stats.upcomingEvents}
+                      </p>
+                    </div>
+                    <div className="bg-green-100 p-3 rounded-full">
+                      <FiTrendingUp className="text-green-600 text-xl" />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-md p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Total registerd</p>
+                      <p className="text-2xl font-bold text-gray-800 mt-1">
+                        {StudentCount}
+                      </p>
+                    </div>
+                    <div className="bg-purple-100 p-3 rounded-full">
+                      <FiUsers className="text-purple-600 text-xl" />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-md p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Active Users</p>
+                      <p className="text-2xl font-bold text-gray-800 mt-1">
+                        {stats.activeUsers}
+                      </p>
+                    </div>
+                    <div className="bg-yellow-100 p-3 rounded-full">
+                      <FiUserCheck className="text-yellow-600 text-xl" />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-md p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Total Revenue</p>
+                      <p className="text-2xl font-bold text-gray-800 mt-1">
+                        ${stats.totalRevenue}
+                      </p>
+                    </div>
+                    <div className="bg-green-100 p-3 rounded-full">
+                      <FiStar className="text-green-600 text-xl" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  Recent Events
+                </h2>
+                <div className="space-y-4">
+                  {events.slice(0, 5).map((event) => (
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                          <FiCalendar className="text-primary-600 text-xl" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-800">
+                            {event.title}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {event.date} • <br /> {event.venue}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                          {event.registeredCount} attendees
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Events Management Tab */}
+          {activeTab === "events" && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Actions Bar */}
+              <div className="flex justify-between items-center flex-wrap gap-4">
+                <div className="flex-1 max-w-md relative">
+                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search events..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div className="flex space-x-3">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat === "all" ? "All Categories" : cat}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => {
+                      setEditingEvent(null);
+                      resetForm();
+                      setShowEventModal(true);
+                    }}
+                    className="btn-primary flex items-center space-x-2"
+                  >
+                    <FiPlus />
+                    <span>Create Event</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Events Table */}
+              <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Event
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Location
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Registered
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredEvents.map((event) => (
+                        <tr
+                          key={event.id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {event.title}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {event.category}
+                              </div>
+                            </div>
+                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {event.date}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {event.time}
+                            </div>
+                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {event.venue}
+                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-900">
+                              {event.registeredCount}/{event.maxParticipants}
+                            </span>
+                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                new Date(event.date) > new Date()
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {new Date(event.date) > new Date()
+                                ? "Upcoming"
+                                : "Past"}
+                            </span>
+                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEditEvent(event)}
+                                className="text-blue-600 hover:text-blue-800 transition-colors"
+                              >
+                                <FiEdit2 />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteEvent(event._id)}
+                                className="text-red-600 hover:text-red-800 transition-colors"
+                              >
+                                <FiTrash2 />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  toast(`Viewing ${event.title} details`)
+                                }
+                                className="text-gray-600 hover:text-gray-800 transition-colors"
+                              >
+                                <FiEye />
+                              </button>
+                            </div>
+                           </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {filteredEvents.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">No events found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Users Management Tab */}
+          {activeTab === "users" && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="flex justify-between items-center">
+                <div className="flex-1 max-w-md relative">
+                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    onChange={eventSearch}
+                    placeholder="Search users..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <button className="btn-primary flex items-center space-x-2">
+                  <FiUserPlus />
+                  <span>Add User</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {users.map((user) => (
+                  <div
+                    key={user.id}
+                    className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                          {user.name.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-800">
+                            {user.name}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            PH : {user.phone}
+                          </p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                user.role === "admin"
+                                  ? "bg-purple-100 text-purple-700"
+                                  : "bg-blue-100 text-blue-700"
+                              }`}
+                            >
+                              {user.role}
+                            </span>
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                user.status === "active"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {user.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleUserAction(user.id, "makeAdmin")}
+                          className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          title="Make Admin"
+                        >
+                          <FiStar />
+                        </button>
+                        {user.status === "active" ? (
+                          <button
+                            onClick={() => handleUserAction(user.id, "block")}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Block User"
+                          >
+                            <FiUserX />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              handleUserAction(user.id, "activate")
+                            }
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Activate User"
+                          >
+                            <FiUserCheck />
+                          </button>
+                        )}
+                        <button
+                          onClick={() =>
+                            toast(`Sending email to ${user.email}`)
+                          }
+                          className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                          title="Send Email"
+                        >
+                          <FiMail />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
+                      <div>
+                        <span className="text-gray-500">Events Attended:</span>
+                        <span className="ml-2 font-semibold text-gray-800">
+                          {user.eventsAttended}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Joined:</span>
+                        <span className="ml-2 text-gray-600">
+                          {user.joinDate}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === "settings" && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  General Settings
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Site Name
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="EventHub"
+                      className="input-field max-w-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Contact Email
+                    </label>
+                    <input
+                      type="email"
+                      defaultValue="admin@eventhub.com"
+                      className="input-field max-w-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Default Event Capacity
+                    </label>
+                    <input
+                      type="number"
+                      defaultValue="100"
+                      className="input-field max-w-md"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  Notification Settings
+                </h2>
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      defaultChecked
+                      className="w-4 h-4 text-primary-600"
+                    />
+                    <span className="text-gray-700">
+                      Send email notifications for new event registrations
+                    </span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      defaultChecked
+                      className="w-4 h-4 text-primary-600"
+                    />
+                    <span className="text-gray-700">
+                      Send weekly digest emails to users
+                    </span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 text-primary-600"
+                    />
+                    <span className="text-gray-700">
+                      Send promotional emails
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button className="btn-primary flex items-center space-x-2">
+                  <FiSave />
+                  <span>Save Settings</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Event Modal */}
+          {showEventModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-fade-in">
+                <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    {editingEvent ? "Edit Event" : "Create New Event"}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowEventModal(false);
+                      setEditingEvent(null);
+                      resetForm();
+                    }}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <FiX className="text-2xl" />
+                  </button>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Event Title *
+                    </label>
+                    <input
+                      type="text"
+                      name="title"
+                      value={formData.title}
+                      onChange={handleInputChange}
+                      className="input-field"
+                      placeholder="Enter event title"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className="input-field"
+                      placeholder="Enter event description"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Date *
+                      </label>
+                      <input
+                        type="date"
+                        name="date"
+                        value={formData.date}
+                        onChange={(e) =>
+                          setFormData({ ...formData, date: e.target.value })
+                        }
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Time
+                      </label>
+                      <input
+                        type="time"
+                        name="time"
+                        value={formData.time}
+                        onChange={(e) =>
+                          setFormData({ ...formData, time: e.target.value })
+                        }
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                  </div>
+                  {/* localtion venue */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Location *
+                    </label>
+                    <input
+                      type="text"
+                      name="venue"
+                      value={formData.venue}
+                      onChange={handleInputChange}
+                      className="input-field"
+                      placeholder="Event location"
+                    />
+                  </div>
+                  {/* tag line */}
+                      <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tag *
+                    </label>
+                    <input
+                      type="text"
+                      name="tagline"
+                      value={formData.tagline}
+                      onChange={handleInputChange}
+                      className="input-field"
+                      placeholder="Tagline for event"
+                    />
+                  </div>
+
+                  {/* incharge */}
+                  {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Incharge *
+                      </label>
+                      <input
+                        type="text"
+                        name="incharge"
+                        value={formData.incharge}
+                        onChange={handleInputChange}
+                        className="input-field"
+                        placeholder="Incharge name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Capacity
+                      </label>
+                      <input
+                        type="number"
+                        name="maxParticipants"
+                        value={formData.maxParticipants}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            maxParticipants: e.target.value,
+                          })
+                        }
+                        placeholder="Max Participants"
+                        min="1"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                  </div> */}
+                  {/* Gradient Color Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Card Gradient Color *
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {gradientOptions.map((gradient) => (
+                        <button
+                          key={gradient.id}
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              gradientColor: gradient.value,
+                            })
+                          }
+                          className={`relative rounded-lg overflow-hidden border-2 transition-all ${
+                            formData.gradientColor === gradient.value
+                              ? "border-indigo-500 ring-2 ring-indigo-200"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <div className={`h-12 ${gradient.preview}`}></div>
+                          <div className="p-2 bg-white">
+                            <p className="text-xs font-medium text-gray-700">
+                              {gradient.name}
+                            </p>
+                          </div>
+                          {formData.gradientColor === gradient.value && (
+                            <div className="absolute top-1 right-1">
+                              <svg
+                                className="w-4 h-4 text-indigo-500"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    {formData.gradientColor && (
+                      <div className="mt-3 p-2 bg-gray-50 rounded-lg flex items-center gap-2">
+                        <span className="text-sm text-gray-600">
+                          Selected preview:
+                        </span>
+                        <div
+                          className={`h-6 w-24 rounded bg-gradient-to-r ${formData.gradientColor}`}
+                        ></div>
+                      </div>
+                    )}
+                  </div>
+                  {/* image upload */}
+                  <div>
+                    <ImageUpload
+                      formData={formData}
+                      setFormData={setFormData}
+                      existingImage={editingEvent?.image || ""}
+                    />
+                  </div>
+                </div>
+                {/* submit button */}
+                <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      setShowEventModal(false);
+                      setEditingEvent(null);
+                      resetForm();
+                    }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={
+                      editingEvent ? handleUpdateEvent : handleCreateEvent
+                    }
+                    className="btn-primary"
+                  >
+                    {editingEvent ? "Update Event" : "Create Event"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
-export default ActivityPage;
+export default AdminPanel;
