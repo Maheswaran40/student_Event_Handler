@@ -14,6 +14,7 @@ import RegistrationForm from './pages/RegistrationForm'
 import EventDetails from './components/EventDetails'
 import ActivityPage from './pages/ActivityPage'
 import CreateVolunteerForm from './pages/CreateVolunteerForm'
+import Inchargers from './pages/Inchargers'
 function App() {
 const location=useLocation()
 const hideLayout=location.pathname==="/"
@@ -29,6 +30,7 @@ const hideLayout=location.pathname==="/"
               <Route path="/Activity" element={<ActivityPage />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/" element={<HeroPage/>} />
+              <Route path="/incharges" element={<Inchargers/>} />
               <Route path="/volunteerForm" element={<CreateVolunteerForm/>} />
               <Route path="/register" element={<RegistrationForm/>} />
               <Route path="/events/:eventId" element={<EventDetails/>} />

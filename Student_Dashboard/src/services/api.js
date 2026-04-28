@@ -210,6 +210,101 @@ export const userService = {
     }
   },
   
+ getUserProfile: async () => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        console.error("No token found");
+        return { success: false, user: null, error: "No token found" };
+      }
+      
+      const response = await axios.get(`${API_BASE_URL}/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      console.log("getUserProfile response:", response.data);
+      
+      return { 
+        success: true, 
+        user: response.data,
+        data: response.data 
+      };
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return { 
+        success: false, 
+        user: null, 
+        error: error.response?.data?.message || error.message 
+      };
+    }
+  },
+
+  // Get all users (for admin)
+  getAllUsers: async () => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        return { success: false, users: [] };
+      }
+      
+      const response = await axios.get(`${API_BASE_URL}/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      console.log("getAllUsers response:", response.data);
+      
+      // Handle different response structures
+      const users = response.data.users || response.data || [];
+      return { success: true, users: users };
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      return { success: false, users: [], error: error.message };
+    }
+  },
+
+  // Update user (for admin)
+  updateUser: async (userId, userData) => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      const response = await axios.put(`${API_BASE_URL}/users/${userId}`, userData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  },
+
+  // Delete user (for admin)
+  deleteUser: async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      const response = await axios.delete(`${API_BASE_URL}/users/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  },
+
   getStudentById: async (id) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/students/${id}`)

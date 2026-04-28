@@ -159,8 +159,8 @@ console.log(studentsData.data)
     if (
       !formData.title ||
       !formData.date ||
-      !formData.venue ||
-      !formData.incharge
+      !formData.venue 
+      
     ) {
       toast.error(
         "Please fill in all required fields (title, date, venue, incharge)",

@@ -51,7 +51,7 @@ const loginUser = async (req, res) => {
 };
 
 //  ADMIN CREATES USER
-//  ADMIN CREATES USER (Simplified - only event IDs)
+
 const createUserByAdmin = async (req, res) => {
   try {
     const { name, email, password, role, eventId } = req.body;

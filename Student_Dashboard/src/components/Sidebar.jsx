@@ -1,5 +1,6 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
+import { FaPersonChalkboard } from "react-icons/fa6";
 import { 
   FiHome, 
   FiCalendar, 
@@ -25,6 +26,7 @@ const Sidebar = ({close}) => {
     { to: '/analytics', icon: FiTrendingUp, label: 'Analytics' },
     { to: '/notifications', icon: FiBell, label: 'Notifications' },
     { to: '/volunteerForm', icon: FaWpforms, label: 'create volunteer' },
+    { to: '/incharges', icon: FaPersonChalkboard , label: 'Event Inchargers' },
   ]
   
   // if (isAdmin) {
