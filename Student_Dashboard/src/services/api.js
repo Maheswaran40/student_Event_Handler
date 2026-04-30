@@ -115,15 +115,22 @@ export const eventsService = {
   },
   
     // UPDATE existing event
-  updateEvent: async (id, eventData) => {
-    try {
-      const res = await axios.put(`${EventUrl}/${id}`, eventData);
-      return res.data.data; // Returns the updated event
-    } catch (error) {
-      console.error("Error updating event:", error);
-      throw error;
-    }
-  },
+updateEvent: async (id, eventData) => {
+  try {
+    const token = localStorage.getItem("token");  
+
+    const res = await axios.put(`${EventUrl}/${id}`, eventData, {
+      headers: {
+        Authorization: `Bearer ${token}`,  
+      },
+    });
+
+    return res.data.data;
+  } catch (error) {
+    console.error("Error updating event:", error);
+    throw error;
+  }
+},
 
   // DELETE event
   deleteEvent: async (id) => {

@@ -11,7 +11,7 @@ function ContextProvider({ children }) {
       setLoading(true);
 
       const res = await axios.get("http://localhost:5000/api/events/");
-
+      console.log("eventdata", res.data.data);
       // ✅ store full events array
       setEventData(res.data.data);
 

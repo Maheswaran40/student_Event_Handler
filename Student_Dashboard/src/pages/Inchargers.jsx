@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { userService } from "../services/api";
-
+import { BsCalendarEventFill } from "react-icons/bs";
 function Inchargers() {
   const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
@@ -9,31 +9,30 @@ function Inchargers() {
   const [editingUser, setEditingUser] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
-
-  console.log("currentUser",currentUser)
+  console.log("currentUser", currentUser);
 
   async function fetchData() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Get current user profile
       const profile = await userService.getUserProfile();
-      
+
       if (!profile.success) {
         setError(profile.error || "Failed to load user profile");
         setLoading(false);
         return;
       }
-      console.log("setCurrentUser",profile.data.data)
+      console.log("setCurrentUser", profile.data.data);
       const user = profile.data.data.user;
       setCurrentUser(user);
-      
+
       // If admin, fetch all users
-      if (user.role == 'admin') {
+      if (user.role == "admin") {
         const allUsers = await userService.getAllUsers();
         console.log("All users:", allUsers);
-        
+
         if (allUsers.success) {
           // Filter out the current admin if needed, or keep all users
           setUsers(allUsers.users);
@@ -105,13 +104,21 @@ function Inchargers() {
         <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <div className="ml-3">
               <p className="text-sm text-red-700">Error: {error}</p>
-              <button 
+              <button
                 onClick={fetchData}
                 className="mt-2 text-sm text-red-700 hover:text-red-900 font-medium"
               >
@@ -130,21 +137,27 @@ function Inchargers() {
         {/* Header */}
         <div className="mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">User Management Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              User Management Dashboard
+            </h1>
             <div className="flex items-center gap-2 text-gray-600">
               <span className="font-semibold">Logged in as:</span>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                currentUser?.role === 'admin' 
-                  ? 'bg-purple-100 text-purple-800' 
-                  : 'bg-green-100 text-green-800'
-              }`}>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  currentUser?.role === "admin"
+                    ? "bg-purple-100 text-purple-800"
+                    : "bg-green-100 text-green-800"
+                }`}
+              >
                 {currentUser?.role?.toUpperCase()}
               </span>
               <span>({currentUser?.name})</span>
-             
             </div>
             <div className="mt-4 text-sm text-gray-500">
-              Total Users: <span className="font-semibold text-gray-700">{users.length}</span>
+              Total Users:{" "}
+              <span className="font-semibold text-gray-700">
+                {users.length}
+              </span>
             </div>
           </div>
         </div>
@@ -152,12 +165,12 @@ function Inchargers() {
         {/* Users Cards Grid */}
         <div>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            {currentUser?.role === 'admin' ? 'All Users' : 'Your Profile'}
+            {currentUser?.role === "admin" ? "All Users" : "Your Profile"}
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {users.map((user,index) => (
-              <UserCard 
+            {users.map((user, index) => (
+              <UserCard
                 key={user._id || user.id || index}
                 user={user}
                 currentUser={currentUser}
@@ -185,9 +198,17 @@ function Inchargers() {
 }
 
 // User Card Component
-function UserCard({ user, currentUser, onEdit, onDelete, showDeleteConfirm, onConfirmDelete, onCancelDelete }) {
+function UserCard({
+  user,
+  currentUser,
+  onEdit,
+  onDelete,
+  showDeleteConfirm,
+  onConfirmDelete,
+  onCancelDelete,
+}) {
   const [showDetails, setShowDetails] = useState(false);
-  
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
       {/* Card Header */}
@@ -197,52 +218,76 @@ function UserCard({ user, currentUser, onEdit, onDelete, showDeleteConfirm, onCo
             <h3 className="text-xl font-bold text-white">{user.name}</h3>
             <p className="text-blue-100 text-sm mt-1">{user.email}</p>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            user.role === 'admin' 
-              ? 'bg-purple-200 text-purple-800' 
-              : 'bg-green-200 text-green-800'
-          }`}>
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              user.role === "admin"
+                ? "bg-purple-200 text-purple-800"
+                : "bg-green-200 text-green-800"
+            }`}
+          >
             {user.role}
           </span>
         </div>
       </div>
-      
+
       {/* Card Body */}
       <div className="p-6">
         <div className="space-y-3">
           <div className="flex items-center text-gray-600">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
             </svg>
-            <span className="text-sm">ID: {(user._id || user.id)?.slice(-8)}</span>
+            <span className="text-sm">
+              ID: {(user._id || user.id)?.slice(-8)}
+            </span>
           </div>
-          
+
           <div className="flex items-center text-gray-600">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
             </svg>
             <span className="text-sm">{user.email}</span>
-             
-
           </div>
           {user.eventRoles.map((event, index) => (
-      <div key={index} className="text-sm text-gray-600">
-        {event.title}
-      </div>
-    ))}
-          
+            <div key={index} className="text-sm text-gray-600">
+              <b className="flex items-center"><BsCalendarEventFill /> &nbsp;&nbsp;{event.title}</b>
+            </div>
+          ))}
+
           {user.students && user.students.length > 0 && (
             <button
               onClick={() => setShowDetails(!showDetails)}
               className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
             >
-              {showDetails ? '▼' : '▶'} Show Students ({user.students.length})
+              {showDetails ? "▼" : "▶"} Show Students ({user.students.length})
             </button>
           )}
-          
+
           {showDetails && user.students && user.students.length > 0 && (
             <div className="mt-3 pl-3 border-l-2 border-blue-300">
-              <p className="text-xs font-semibold text-gray-500 mb-2">Allocated Students:</p>
+              <p className="text-xs font-semibold text-gray-500 mb-2">
+                Allocated Students:
+              </p>
               <div className="space-y-1">
                 {user.students.map((student, idx) => (
                   <div key={idx} className="text-sm text-gray-600">
@@ -254,9 +299,9 @@ function UserCard({ user, currentUser, onEdit, onDelete, showDeleteConfirm, onCo
           )}
         </div>
       </div>
-      
+
       {/* Card Footer - Actions (only for admin) */}
-      {currentUser?.role === 'admin' && currentUser._id !== user._id && (
+      {currentUser?.role === "admin" && currentUser._id !== user._id && (
         <div className="bg-gray-50 px-6 py-3 flex justify-end gap-2">
           {!showDeleteConfirm ? (
             <>
@@ -298,10 +343,10 @@ function UserCard({ user, currentUser, onEdit, onDelete, showDeleteConfirm, onCo
 // Edit User Modal Component
 function EditUserModal({ user, onSave, onClose }) {
   const [formData, setFormData] = useState({
-    name: user.name || '',
-    email: user.email || '',
-    password: '',
-    role: user.role || 'volunteer'
+    name: user.name || "",
+    email: user.email || "",
+    password: "",
+    role: user.role || "volunteer",
   });
 
   const handleSubmit = (e) => {
@@ -316,13 +361,26 @@ function EditUserModal({ user, onSave, onClose }) {
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-2xl font-bold text-gray-800">Edit User</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -331,12 +389,14 @@ function EditUserModal({ user, onSave, onClose }) {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -344,12 +404,14 @@ function EditUserModal({ user, onSave, onClose }) {
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               New Password (optional)
@@ -357,26 +419,30 @@ function EditUserModal({ user, onSave, onClose }) {
             <input
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
               placeholder="Leave blank to keep current"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Role
             </label>
             <select
               value={formData.role}
-              onChange={(e) => setFormData({...formData, role: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, role: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="volunteer">Volunteer</option>
               <option value="admin">Admin</option>
             </select>
           </div>
-          
+
           <div className="flex gap-3 pt-4">
             <button
               type="submit"

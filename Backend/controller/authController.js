@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
-
+const eventSchema = require("../models/events")
 // Generate Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || "secret", {
@@ -15,16 +15,16 @@ const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    console.log("user" , user.password,password)
+    console.log("user", user.password, password)
     if (!user) {
       return res.status(401).json({
         success: false,
         error: "Invalid email or password 1st",
       });
     }
-    console.log(await bcrypt.hash(password,10)) 
+    console.log(await bcrypt.hash(password, 10))
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log("isMatch",isMatch)
+    console.log("isMatch", isMatch)
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -56,29 +56,37 @@ const createUserByAdmin = async (req, res) => {
   try {
     const { name, email, password, role, eventId } = req.body;
 
-    // Check if user exists
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(400).json({ error: "User already exists" });
     }
 
-    // Prepare eventRoles array if eventId is provided
     let eventRoles = [];
     if (eventId) {
-      eventRoles = [eventId];  // ✅ Just store the event ID directly
+      eventRoles = [eventId];
     }
 
-    // Create user
     const user = await User.create({
       name,
       email,
       password: await bcrypt.hash(password, 10),
       role: role || "volunteer",
-      eventRoles: eventRoles  // ✅ Array of event IDs
+      eventRoles
     });
 
-    // Populate the event details in response
-    const populatedUser = await User.findById(user._id).populate('eventRoles');
+    // ✅ STEP 1: Fix null → []
+    if (eventId) {
+      await eventSchema.findByIdAndUpdate(eventId, {
+        $set: { incharge: [] }
+      }, { upsert: false });
+
+      // ✅ STEP 2: Add user safely
+      await eventSchema.findByIdAndUpdate(eventId, {
+        $addToSet: { incharge: user._id }
+      });
+    }
+
+    const populatedUser = await User.findById(user._id).populate("eventRoles");
 
     res.status(201).json({
       success: true,
@@ -135,10 +143,10 @@ const deleteUser = async (req, res) => {
 
     await user.save();
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Event removed from volunteer",
-      data: user 
+      data: user
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

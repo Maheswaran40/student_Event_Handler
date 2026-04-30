@@ -163,7 +163,7 @@ console.log(studentsData.data)
       
     ) {
       toast.error(
-        "Please fill in all required fields (title, date, venue, incharge)",
+        "Please fill in all required fields (title, date, venue)",
       );
       return;
     }
@@ -185,7 +185,6 @@ console.log(studentsData.data)
       formDataToSend.append("description", formData.description);
       formDataToSend.append("date", eventDateTime.toISOString());
       formDataToSend.append("venue", formData.venue);
-      formDataToSend.append("incharge", formData.incharge);
       formDataToSend.append("maxParticipants", parseInt(formData.maxParticipants) || 10);
       formDataToSend.append("status", "upcoming");
       formDataToSend.append("gradientColor", formData.gradientColor || "from-indigo-500 to-purple-600");
@@ -224,6 +223,20 @@ console.log(studentsData.data)
     }
   };
 
+    const handleDeleteEvent = async (eventId) => {
+    if (window.confirm("Are you sure you want to delete this event?")) {
+      console.log("Deleting event with ID:", eventId);
+
+      try {
+        await eventsService.deleteEvent(eventId);
+        setEvents(events.filter((event) => event.id !== eventId));
+        toast.success("Event deleted successfully!");
+      } catch (error) {
+        toast.error("Failed to delete event");
+      }
+    }
+  };
+
   // ✅ FIXED: Corrected handleUpdateEvent
   const handleUpdateEvent = async () => {
     try {
@@ -240,7 +253,6 @@ console.log(studentsData.data)
       formDataToSend.append("description", formData.description);
       formDataToSend.append("date", eventDateTime.toISOString());
       formDataToSend.append("venue", formData.venue);
-      formDataToSend.append("incharge", formData.incharge);
       formDataToSend.append("maxParticipants", parseInt(formData.maxParticipants) || 10);
       formDataToSend.append("gradientColor", formData.gradientColor);
       formDataToSend.append("tagline", formData.tagline);
@@ -251,7 +263,7 @@ console.log(studentsData.data)
 
       await eventsService.updateEvent(editingEvent._id, formDataToSend);
       const updatedEvents = events.map((event) =>
-        event.id === editingEvent._id ? { ...event, ...formData } : event,
+        event._id === editingEvent._id ? { ...event, ...formData } : event,
       );
       setEvents(updatedEvents);
       toast.success("Event updated successfully!");
@@ -262,20 +274,9 @@ console.log(studentsData.data)
       toast.error("Failed to update event");
     }
   };
+  
 
-  const handleDeleteEvent = async (eventId) => {
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      console.log("Deleting event with ID:", eventId);
 
-      try {
-        await eventsService.deleteEvent(eventId);
-        setEvents(events.filter((event) => event.id !== eventId));
-        toast.success("Event deleted successfully!");
-      } catch (error) {
-        toast.error("Failed to delete event");
-      }
-    }
-  };
 
   const handleEditEvent = (event) => {
     setEditingEvent(event);
@@ -285,7 +286,7 @@ console.log(studentsData.data)
       date: event.date,
       time: event.time,
       venue: event.venue,
-      incharge: event.incharge,
+      incharg:[],
       maxParticipants: event.maxParticipants || "",
       image: event.image || "",
       gradientColor: event.gradientColor || "from-indigo-500 to-purple-600",
@@ -1006,8 +1007,8 @@ console.log(studentsData.data)
                   </div>
 
                   {/* incharge */}
-                  {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Incharge *
                       </label>
@@ -1019,7 +1020,7 @@ console.log(studentsData.data)
                         className="input-field"
                         placeholder="Incharge name"
                       />
-                    </div>
+                    </div> */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Capacity
@@ -1039,7 +1040,7 @@ console.log(studentsData.data)
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       />
                     </div>
-                  </div> */}
+                  </div>
                   {/* Gradient Color Selection */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

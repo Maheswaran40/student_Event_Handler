@@ -29,10 +29,12 @@ const eventSchema = new mongoose.Schema({
     required: [true, 'Venue is required'],
     trim: true
   },
-  incharge: {
-    type: String,
-    trim: true
-  },
+  incharge: 
+  [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+
+  }],
   maxParticipants: {
     type: Number,
     default: 10,

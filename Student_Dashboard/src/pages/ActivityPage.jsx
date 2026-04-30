@@ -39,53 +39,53 @@ const ActivityPage = () => {
   //   { id: 'evt4', title: 'Art Competition', description: 'Creative arts showcase', date: '2025-05-25', venue: 'Art Gallery', maxScore: 75, status: 'ongoing' },
   // ]);
 
-  // const [scores] = useState([
-  //   {
-  //     id: "scr1",
-  //     studentId: "stu1",
-  //     eventId: "evt1",
-  //     score: 85,
-  //     status: "approved",
-  //     volunteerId: "vol1",
-  //     remarks: "Good performance",
-  //   },
-  //   {
-  //     id: "scr2",
-  //     studentId: "stu2",
-  //     eventId: "evt1",
-  //     score: 78,
-  //     status: "approved",
-  //     volunteerId: "vol1",
-  //     remarks: "Needs improvement",
-  //   },
-  //   {
-  //     id: "scr3",
-  //     studentId: "stu3",
-  //     eventId: "evt1",
-  //     score: 92,
-  //     status: "pending",
-  //     volunteerId: "vol1",
-  //     remarks: "Excellent",
-  //   },
-  //   {
-  //     id: "scr4",
-  //     studentId: "stu1",
-  //     eventId: "evt2",
-  //     score: 88,
-  //     status: "approved",
-  //     volunteerId: "vol2",
-  //     remarks: "Very creative",
-  //   },
-  //   {
-  //     id: "scr5",
-  //     studentId: "stu2",
-  //     eventId: "evt2",
-  //     score: 76,
-  //     status: "pending",
-  //     volunteerId: "vol2",
-  //     remarks: "Good effort",
-  //   },
-  // ]);
+  const [scores] = useState([
+    {
+      id: "scr1",
+      studentId: "stu1",
+      eventId: "evt1",
+      score: 85,
+      status: "approved",
+      volunteerId: "vol1",
+      remarks: "Good performance",
+    },
+    {
+      id: "scr2",
+      studentId: "stu2",
+      eventId: "evt1",
+      score: 78,
+      status: "approved",
+      volunteerId: "vol1",
+      remarks: "Needs improvement",
+    },
+    {
+      id: "scr3",
+      studentId: "stu3",
+      eventId: "evt1",
+      score: 92,
+      status: "pending",
+      volunteerId: "vol1",
+      remarks: "Excellent",
+    },
+    {
+      id: "scr4",
+      studentId: "stu1",
+      eventId: "evt2",
+      score: 88,
+      status: "approved",
+      volunteerId: "vol2",
+      remarks: "Very creative",
+    },
+    {
+      id: "scr5",
+      studentId: "stu2",
+      eventId: "evt2",
+      score: 76,
+      status: "pending",
+      volunteerId: "vol2",
+      remarks: "Good effort",
+    },
+  ]);
 
   const [loading, setLoading] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -101,9 +101,10 @@ const ActivityPage = () => {
   const [eventScores, setEventScores] = useState([]);
   const [registrationData, setRegistrationData] = useState({});
 
-  const isAdmin = currentUser === "admin";
-  const isVolunteer = currentUser === "volunteer";
-
+  const isAdmin = currentUser == "admin";
+  const isVolunteer = currentUser == "volunteer";
+  console.log("students",students);
+  
   const getCurrentUser = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -114,9 +115,9 @@ const ActivityPage = () => {
         },
       });
 
-      const role = response.data.data.role;
+      const role = response.data.data.user.role;
       setCurrentUser(role);
-
+      
       // 👇 call directly here (BEST)
       if (role === "admin") {
         fetchAllEvents();
@@ -163,11 +164,11 @@ const ActivityPage = () => {
   }, [currentUser]);
 
   // Filter students
-  // const filteredStudents = students.filter(student => {
-  //   if (filterClass && student.class !== filterClass) return false;
-  //   if (searchStudent && !student.name.toLowerCase().includes(searchStudent.toLowerCase())) return false;
-  //   return true;
-  // });
+  const filteredStudents = students.filter(student => {
+    if (filterClass && student.class !== filterClass) return false;
+    if (searchStudent && !student.name.toLowerCase().includes(searchStudent.toLowerCase())) return false;
+    return true;
+  });
 
   // Get unique classes
   const uniqueClasses = [...new Set(students.map((s) => s.class))];
@@ -187,11 +188,11 @@ const ActivityPage = () => {
   };
 
   // Sort students by total score
-  // const sortedStudents = [...filteredStudents].sort((a, b) => {
-  //   const scoreA = getStudentTotalScore(a.id);
-  //   const scoreB = getStudentTotalScore(b.id);
-  //   return scoreB - scoreA;
-  // });
+  const sortedStudents = [...filteredStudents].sort((a, b) => {
+    const scoreA = getStudentTotalScore(a.id);
+    const scoreB = getStudentTotalScore(b.id);
+    return scoreB - scoreA;
+  });
 
   // Load event scores
   const loadEventScores = (event) => {
@@ -203,7 +204,7 @@ const ActivityPage = () => {
       return {
         ...score,
         studentName: student?.name || "Unknown",
-        rollNumber: student?.rollNumber || "N/A",
+        rollNo: student?.rollNo || "N/A",
         class: student?.class || "N/A",
       };
     });
@@ -525,7 +526,10 @@ const handleCreateEvent = async (eventData) => {
                       Roll No
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Class
+                      Year
+                    </th>
+                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      phoneNo
                     </th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                       Registration
@@ -560,11 +564,16 @@ const handleCreateEvent = async (eventData) => {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {student.rollNumber}
+                          {student.rollNo}
                         </td>
                         <td className="px-4 py-3">
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                            {student.class}
+                            {student.year}
+                          </span>
+                        </td>
+                            <td className="px-4 py-3">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                            {student.phoneNo}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -591,6 +600,11 @@ const handleCreateEvent = async (eventData) => {
                               "Mark Register"
                             )}
                           </button>
+                        </td>
+                           <td className="px-4 py-3">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                            {student.totalScore}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-center">
                           {existingScore ? (
@@ -828,7 +842,7 @@ const ScoreModal = ({ student, event, existingScore, onClose, onSubmit }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="bg-blue-50 rounded-lg p-3">
             <p className="text-sm text-blue-800">
-              <strong>Student:</strong> {student.name} ({student.rollNumber})
+              <strong>Student:</strong> {student.name} ({student.rollNo})
             </p>
             <p className="text-sm text-blue-600 mt-1">
               <strong>Class:</strong> {student.class}

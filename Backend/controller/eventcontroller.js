@@ -37,6 +37,10 @@ exports.createEvent = async (req, res) => {
     console.log(req.file);
     console.log(req.body);
     //  YOUR ORIGINAL CODE (UNCHANGED)
+    // BEFORE creating event
+if (!req.body.incharge) {
+  req.body.incharge = []; // IMPORTANT
+}
     const event = new Event(req.body);
     await event.save();
 
@@ -54,30 +58,16 @@ exports.createEvent = async (req, res) => {
   }
 };
 
-// Get all events
-// exports.getAllEvents = async (req, res) => {
-//   try {
-//     const events = await Event.find();
-//     res.status(200).json({ 
-//       success: true, 
-//       count: events.length,
-//       data: events 
-//     });
-//   } catch (error) {
-//     res.status(400).json({ 
-//       success: false, 
-//       error: error.message 
-//     });
-//   }
-// };
+
 exports.getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find();
+
+    const events = await Event.find()
+      .populate("incharge", "name email");
 
     const eventsWithCount = await Promise.all(
       events.map(async (event) => {
         const count = await Student.countDocuments({ event: event._id });
-        console.log(count);
 
         return {
           ...event.toObject(),
@@ -85,7 +75,7 @@ exports.getAllEvents = async (req, res) => {
         };
       })
     );
-    //  total number of events
+
     const totalEvents = await Event.countDocuments();
 
     res.status(200).json({
@@ -137,26 +127,42 @@ exports.getEventById = async (req, res) => {
 // Update event
 exports.updateEvent = async (req, res) => {
   try {
+    let updateData = { ...req.body };
+
+    // 🔥 handle image upload
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "event",
+      });
+
+      updateData.image = result.secure_url;
+    }
+
     const event = await Event.findByIdAndUpdate(
       req.params.id,
-      req.body,
-      { new: true, runValidators: true }
+      updateData,
+      { returnDocument: "after", runValidators: true }
     );
+
+    console.log("BODY:", req.body);
+
     if (!event) {
       return res.status(404).json({
         success: false,
-        error: 'Event not found'
+        error: "Event not found",
       });
     }
+
     res.status(200).json({
       success: true,
-      message: 'Event updated successfully',
-      data: event
+      message: "Event updated successfully",
+      data: event,
     });
+
   } catch (error) {
     res.status(400).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 };

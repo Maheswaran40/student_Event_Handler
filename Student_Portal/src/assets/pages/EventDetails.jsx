@@ -150,7 +150,7 @@ const EventDetails = () => {
                         </p>
                       
                         <p className="text-gray-700 mb-2">
-                          <strong>Incharge:</strong> {event.incharge}
+                          <strong>Incharge:</strong> {event.incharge[0].name}
                         </p>
                          <p className="text-gray-700 mb-2">
                           <strong>MaxParticipants:</strong> {event.maxParticipants}
