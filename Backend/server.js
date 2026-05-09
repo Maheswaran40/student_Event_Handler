@@ -10,6 +10,7 @@ const studentRoutes = require('./routes/studentroutes');
 const eventRoutes = require('./routes/eventroutes');
 const activityRoutes = require('./routes/activityroutes');
 const authroutes = require('./routes/authroutes');
+const eventScore=require("./routes/eventScoreRoutes")
 
 // Initialize express app
 const app = express();
@@ -37,6 +38,7 @@ app.use('/api/students', studentRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api',authroutes)
+app.use('/api/score',eventScore)
 // Home route
 app.get('/', (req, res) => {
   res.json({
