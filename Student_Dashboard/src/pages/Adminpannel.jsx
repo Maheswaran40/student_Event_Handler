@@ -56,7 +56,7 @@ const AdminPanel = () => {
     imageFile: null  // ✅ Added missing field
   });
 
-// console.log("users",users.length)
+console.log("users",users)
 
   // Create a gradient options constant at the top of your component or in a separate file
   const gradientOptions = [
@@ -125,10 +125,10 @@ const AdminPanel = () => {
       setEvents(eventsData);
       const studentsData = await userService.getProfile();
       SetStudentCount(studentsData.count) 
-console.log(studentsData.data)
+console.log("hi",studentsData.data.students)
 
       // Transform student data to match your UI expectations
-      const transformedUsers = studentsData.map((student) => ({
+      const transformedUsers = studentsData.data.students.map((student) => ({
         id: student._id || student.id,
         name: student.name || student.fullName,
         email: student.email,
@@ -141,6 +141,7 @@ console.log(studentsData.data)
         tagline:student.tagline
       }));
       setUsers(transformedUsers);
+      console.log("transformedUsers")
     } catch (error) {
       toast.error("Failed to fetch data");
     } finally {

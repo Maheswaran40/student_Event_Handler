@@ -20,7 +20,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
- import { eventsService } from "../services/api"; // ✅ adjust path
+import { eventsService ,scoresService} from "../services/api"; // ✅ adjust path
 
 const ActivityPage = () => {
   // Demo data states
@@ -103,8 +103,7 @@ const ActivityPage = () => {
 
   const isAdmin = currentUser == "admin";
   const isVolunteer = currentUser == "volunteer";
-  console.log("students",students);
-  
+
   const getCurrentUser = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -117,7 +116,7 @@ const ActivityPage = () => {
 
       const role = response.data.data.user.role;
       setCurrentUser(role);
-      
+
       // 👇 call directly here (BEST)
       if (role === "admin") {
         fetchAllEvents();
@@ -164,9 +163,13 @@ const ActivityPage = () => {
   }, [currentUser]);
 
   // Filter students
-  const filteredStudents = students.filter(student => {
+  const filteredStudents = students.filter((student) => {
     if (filterClass && student.class !== filterClass) return false;
-    if (searchStudent && !student.name.toLowerCase().includes(searchStudent.toLowerCase())) return false;
+    if (
+      searchStudent &&
+      !student.name.toLowerCase().includes(searchStudent.toLowerCase())
+    )
+      return false;
     return true;
   });
 
@@ -194,24 +197,47 @@ const ActivityPage = () => {
     return scoreB - scoreA;
   });
 
-  // Load event scores
-  const loadEventScores = (event) => {
+// Load event scores using API
+const loadEventScores = async (event) => {
+  try {
+    setLoading(true);
     setSelectedEvent(event);
-    const eventSpecificScores = scores.filter((s) => s.eventId === event._id);
-
-    const scoresWithDetails = eventSpecificScores.map((score) => {
-      const student = students.find((s) => s.id === score.studentId);
-      return {
+    
+    // Call the API to get scores for this event
+    const response = await scoresService.getScoresByEvent(event._id);
+    
+    if (response.success) {
+      const eventSpecificScores = response.data;
+      console.log("eventSpecificScores",eventSpecificScores)
+      // Map the scores with student details from API response
+      const scoresWithDetails = eventSpecificScores.map((score) => ({
         ...score,
-        studentName: student?.name || "Unknown",
-        rollNo: student?.rollNo || "N/A",
-        class: student?.class || "N/A",
-      };
-    });
-
-    setEventScores(scoresWithDetails);
-    setViewMode("scoreboard");
-  };
+        studentId: score.studentId?._id || score.studentId,
+        studentName: score.studentId?.name || "Unknown",
+        rollNo: score.studentId?.phoneNo || "N/A",
+        class: score.studentId?.department || "N/A",
+        score: score.score,
+        remarks: score.remarks || "",
+        addedBy: score.addedBy?.name || "Unknown",
+      }));
+      
+      setEventScores(scoresWithDetails);
+      setViewMode("scoreboard");
+      toast.success(`Loaded ${scoresWithDetails.length} scores for ${event.name}`);
+    } else {
+      toast.error(response.message || "Failed to load event scores");
+    }
+  } catch (error) {
+    console.error("Error loading event scores:", error);
+    toast.error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to load event scores"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Toggle registration
   const toggleRegistration = (studentId, eventId, isRegistered) => {
@@ -225,12 +251,57 @@ const ActivityPage = () => {
   };
 
   // Handle score submission
-  const handleSubmitScore = (scoreData) => {
-    toast.success(
-      "Score submitted successfully! Waiting for admin approval.",
-      scoreData,
+  // In ActivityPage.jsx - Replace your existing handleSubmitScore
+ const handleSubmitScore = async (scoreData) => {
+  try {
+    setLoading(true);
+
+    const response = await scoresService.addOrUpdateScore(scoreData);
+
+    if (response.success) {
+      toast.success(
+        response.message || "Score submitted successfully!"
+      );
+
+      await refreshData();
+
+      setShowScoreModal(false);
+      setSelectedStudent(null);
+      setSelectedEvent(null);
+    } else {
+      toast.error(
+        response.message || "Failed to submit score"
+      );
+    }
+  } catch (error) {
+    console.error("Error submitting score:", error);
+
+    toast.error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to submit score. Please try again."
     );
-    setShowScoreModal(false);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // Helper function to refresh data after score submission
+  const refreshData = async () => {
+    try {
+      // Reload scores based on user role
+      if (isAdmin && selectedEvent) {
+        await loadEventScores(selectedEvent);
+      } else if (isVolunteer) {
+        await loadAllScores();
+        // Also refresh the specific event scores if needed
+        if (selectedEvent) {
+          await loadEventScores(selectedEvent);
+        }
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    }
   };
 
   // Handle approve score
@@ -240,27 +311,24 @@ const ActivityPage = () => {
 
   // Handle create event
 
-const handleCreateEvent = async (eventData) => {
-  try {
-    const token = localStorage.getItem("token");
+  const handleCreateEvent = async (eventData) => {
+    try {
+      const token = localStorage.getItem("token");
 
-    const res = await eventsService.createEvent(eventData, token);
+      const res = await eventsService.createEvent(eventData, token);
 
-    console.log("Created:", res);
+      console.log("Created:", res);
 
-    toast.success("Event created successfully");
+      toast.success("Event created successfully");
 
-    // ✅ reload events
-    getCurrentUser();
+      // ✅ reload events
+      getCurrentUser();
+    } catch (error) {
+      console.error("FULL ERROR:", error.response?.data || error.message);
 
-  } catch (error) {
-  console.error("FULL ERROR:", error.response?.data || error.message);
-
-  toast.error(
-    error.response?.data?.message || "Failed to create event"
-  );
-}
-};
+      toast.error(error.response?.data?.message || "Failed to create event");
+    }
+  };
 
   // Status badge component
   const EventStatusBadge = ({ status }) => {
@@ -408,7 +476,7 @@ const handleCreateEvent = async (eventData) => {
                 [...eventScores]
                   .sort((a, b) => b.score - a.score)
                   .map((score, index) => (
-                    <tr key={score.id} className="hover:bg-gray-50">
+                    <tr key={index} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-semibold">
                           #{index + 1}
@@ -423,7 +491,7 @@ const handleCreateEvent = async (eventData) => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {score.rollNumber}
+                        {score.rollNo}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
@@ -435,7 +503,7 @@ const handleCreateEvent = async (eventData) => {
                           {score.score}
                         </span>
                         <span className="text-sm text-gray-500">
-                          /{selectedEvent?.maxScore}
+                        /100
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -473,193 +541,159 @@ const handleCreateEvent = async (eventData) => {
   );
 
   // Volunteer View: Event Registration & Score Entry
-  const VolunteerEventView = () => (
-    <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">My Events</h2>
-        <p className="text-gray-600">
-          Manage student registrations and submit scores
-        </p>
-      </div>
+// Volunteer View: Event Registration & Score Entry
+const VolunteerEventView = () => (
+  <div>
+    <div className="mb-6">
+      <h2 className="text-2xl font-bold text-gray-900">My Events</h2>
+      <p className="text-gray-600">
+        Manage student registrations and submit scores
+      </p>
+    </div>
 
-      {events.map((event) => (
-        <div
-          key={event._id}
-          className="mb-8 bg-white rounded-xl shadow-sm overflow-hidden"
-        >
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-bold text-white">{event.title}</h3>
-                <p className="text-blue-100 text-sm mt-1">
-                  {event.description}
-                </p>
-              </div>
-              <EventStatusBadge status={event.status} />
+    {events.map((event) => (
+      <div
+        key={event._id}
+        className="mb-8 bg-white rounded-xl shadow-sm overflow-hidden"
+      >
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-xl font-bold text-white">{event.title}</h3>
+              <p className="text-blue-100 text-sm mt-1">
+                {event.description}
+              </p>
             </div>
-          </div>
-
-          <div className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 pb-4 border-b">
-              <div className="flex items-center text-sm text-gray-600">
-                <CalendarIcon className="w-4 h-4 mr-2" />
-                {new Date(event.date).toLocaleDateString()}
-              </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <MapPinIcon className="w-4 h-4 mr-2" />
-                {event.venue}
-              </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <TrophyIcon className="w-4 h-4 mr-2" />
-                Max Score: {event.maxScore}
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Student
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Roll No
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Year
-                    </th>
-                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      phoneNo
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      Registration
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      Score
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {students.map((student) => {
-                    const existingScore = getStudentEventScore(
-                      student._id,
-                      event._id,
-                    );
-                    const isRegistered = registrationData[student._id] || false;
-
-                    return (
-                      <tr key={student._id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <div className="text-sm font-medium text-gray-900">
-                            {student.name}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {student.email}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {student.rollNo}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                            {student.year}
-                          </span>
-                        </td>
-                            <td className="px-4 py-3">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                            {student.phoneNo}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() =>
-                              toggleRegistration(
-                                student._id,
-                                event._id,
-                                isRegistered,
-                              )
-                            }
-                            className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-                              isRegistered
-                                ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
-                          >
-                            {isRegistered ? (
-                              <span className="flex items-center gap-1">
-                                <CheckCircleIcon className="w-4 h-4" />
-                                Registered
-                              </span>
-                            ) : (
-                              "Mark Register"
-                            )}
-                          </button>
-                        </td>
-                           <td className="px-4 py-3">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                            {student.totalScore}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {existingScore ? (
-                            <span
-                              className={`text-sm font-semibold ${
-                                existingScore.status === "approved"
-                                  ? "text-green-600"
-                                  : "text-yellow-600"
-                              }`}
-                            >
-                              {existingScore.score}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {existingScore && (
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs ${
-                                existingScore.status === "approved"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-yellow-100 text-yellow-700"
-                              }`}
-                            >
-                              {existingScore.status === "approved"
-                                ? "Approved"
-                                : "Pending"}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => {
-                              setSelectedStudent(student);
-                              setSelectedEvent(event);
-                              setShowScoreModal(true);
-                            }}
-                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                            disabled={!isRegistered}
-                          >
-                            {existingScore ? "Update Score" : "Add Score"}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <EventStatusBadge status={event.status} />
           </div>
         </div>
-      ))}
-    </div>
-  );
+
+        <div className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 pb-4 border-b">
+            <div className="flex items-center text-sm text-gray-600">
+              <CalendarIcon className="w-4 h-4 mr-2" />
+              {new Date(event.date).toLocaleDateString()}
+            </div>
+            <div className="flex items-center text-sm text-gray-600">
+              <MapPinIcon className="w-4 h-4 mr-2" />
+              {event.venue}
+            </div>
+            <div className="flex items-center text-sm text-gray-600">
+              <TrophyIcon className="w-4 h-4 mr-2" />
+              Max Score: {event.maxScore}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Student
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Roll No
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Year
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    phoneNo
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                    Score
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {students.map((student) => {
+                  const existingScore = getStudentEventScore(
+                    student._id,
+                    event._id,
+                  );
+                  
+                  return (
+                    <tr key={student._id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-medium text-gray-900">
+                          {student.name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {student.email}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {student.rollNo}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                          {student.year}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                          {student.phoneNo}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {existingScore ? (
+                          <span
+                            className={`text-sm font-semibold ${
+                              existingScore.status === "approved"
+                                ? "text-green-600"
+                                : "text-yellow-600"
+                            }`}
+                          >
+                            {existingScore.score}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {existingScore && (
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs ${
+                              existingScore.status === "approved"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {existingScore.status === "approved"
+                              ? "Approved"
+                              : "Pending"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => {
+                            setSelectedStudent(student);
+                            setSelectedEvent(event);
+                            setShowScoreModal(true);
+                          }}
+                          className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                        >
+                          {existingScore ? "Update Score" : "Add Score"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
   return (
     <>
@@ -768,7 +802,7 @@ const handleCreateEvent = async (eventData) => {
             event={selectedEvent}
             existingScore={scores.find(
               (s) =>
-                s.studentId === selectedstudent._id &&
+                s.studentId === selectedStudent._id &&
                 s.eventId === selectedEvent._id,
             )}
             onClose={() => {
@@ -793,29 +827,42 @@ const handleCreateEvent = async (eventData) => {
 };
 
 // Score Modal Component
+// Update the ScoreModal component in ActivityPage.jsx
 const ScoreModal = ({ student, event, existingScore, onClose, onSubmit }) => {
   const [score, setScore] = useState(existingScore?.score || "");
   const [remarks, setRemarks] = useState(existingScore?.remarks || "");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation
     if (!score || score < 0 || score > event.maxScore) {
       toast.error(`Please enter a valid score between 0 and ${event.maxScore}`);
       return;
     }
 
-    setLoading(true);
-    setTimeout(() => {
-      onSubmit({
-        studentId: student._id,
-        eventId: event._id,
+    setSubmitting(true);
+
+    try {
+      // Prepare the data for your backend
+      const scoreData = {
+        studentId: student._id || student.id,
+        eventId: event._id || event.id,
         score: parseInt(score),
         remarks: remarks,
-      });
-      setLoading(false);
-      onClose();
-    }, 500);
+        // Add volunteerId if needed
+        volunteerId: localStorage.getItem("userId"), // If you store userId in localStorage
+      };
+
+      // Call the parent's onSubmit function (which now calls your backend)
+      await onSubmit(scoreData);
+    } catch (error) {
+      console.error("Error in score submission:", error);
+      toast.error("Failed to submit score");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -845,8 +892,18 @@ const ScoreModal = ({ student, event, existingScore, onClose, onSubmit }) => {
               <strong>Student:</strong> {student.name} ({student.rollNo})
             </p>
             <p className="text-sm text-blue-600 mt-1">
-              <strong>Class:</strong> {student.class}
+              <strong>Class:</strong> {student.class || student.year}
             </p>
+            {existingScore && (
+              <p className="text-sm text-yellow-600 mt-1">
+                <strong>Current Score:</strong> {existingScore.score}
+                <br />
+                <strong>Status:</strong>{" "}
+                {existingScore.status === "approved"
+                  ? "✅ Approved"
+                  : "⏳ Pending"}
+              </p>
+            )}
           </div>
 
           <div>
@@ -859,8 +916,9 @@ const ScoreModal = ({ student, event, existingScore, onClose, onSubmit }) => {
               max={event.maxScore}
               value={score}
               onChange={(e) => setScore(e.target.value)}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
+              disabled={submitting}
             />
           </div>
 
@@ -872,38 +930,43 @@ const ScoreModal = ({ student, event, existingScore, onClose, onSubmit }) => {
               rows="3"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Add any comments about the student's performance..."
+              disabled={submitting}
             />
           </div>
 
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              disabled={loading}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+              disabled={submitting}
+              className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
             >
-              {loading
-                ? "Submitting..."
-                : existingScore
-                  ? "Update Score"
-                  : "Submit Score"}
+              {submitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Submitting...
+                </span>
+              ) : existingScore ? (
+                "Update Score"
+              ) : (
+                "Submit Score"
+              )}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 font-medium"
+              className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 font-medium transition"
+              disabled={submitting}
             >
               Cancel
             </button>
           </div>
 
-          {existingScore && (
-            <p className="text-xs text-gray-500 text-center mt-2">
-              Current status:{" "}
-              {existingScore.status === "approved"
-                ? "Approved"
-                : "Pending Approval"}
+          {existingScore && existingScore.status === "pending" && (
+            <p className="text-xs text-yellow-600 text-center mt-2">
+              ⚠️ This score is pending admin approval. Update will create a new
+              pending request.
             </p>
           )}
         </form>
@@ -915,15 +978,15 @@ const ScoreModal = ({ student, event, existingScore, onClose, onSubmit }) => {
 // Event Modal Component
 const EventModal = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    date: '',
-    venue: '',
+    title: "",
+    description: "",
+    date: "",
+    venue: "",
     maxParticipants: 50,
-    incharge: '',
-    status: 'upcoming',
-    gradientColor: 'from-blue-500 to-purple-600',
-    imageFile: null
+    incharge: "",
+    status: "upcoming",
+    gradientColor: "from-blue-500 to-purple-600",
+    imageFile: null,
   });
 
   const [loading, setLoading] = useState(false);
@@ -932,7 +995,7 @@ const EventModal = ({ onClose, onSubmit }) => {
     e.preventDefault();
 
     if (!formData.title || !formData.date || !formData.venue) {
-      toast.error('Please fill all required fields');
+      toast.error("Please fill all required fields");
       return;
     }
 
@@ -947,137 +1010,160 @@ const EventModal = ({ onClose, onSubmit }) => {
 
   return (
     <>
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-  <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white rounded-xl max-w-md w-full max-h-[90vh] flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header - Fixed */}
+          <div className="border-b p-4 flex justify-between items-center flex-shrink-0">
+            <h2 className="text-xl font-bold text-gray-900">
+              Create New Event
+            </h2>
+            <button onClick={onClose}>
+              <XCircleIcon className="w-6 h-6 text-gray-500" />
+            </button>
+          </div>
 
-    {/* Header - Fixed */}
-    <div className="border-b p-4 flex justify-between items-center flex-shrink-0">
-      <h2 className="text-xl font-bold text-gray-900">Create New Event</h2>
-      <button onClick={onClose}>
-        <XCircleIcon className="w-6 h-6 text-gray-500" />
-      </button>
-    </div>
-
-    {/* Form - Scrollable without visible scrollbar */}
-    <form 
-      onSubmit={handleSubmit} 
-      className="p-6 space-y-4 flex-1"
-      style={{ 
-        overflowY: 'auto', 
-        scrollbarWidth: 'none', 
-        msOverflowStyle: 'none' 
-      }}
-    >
-      <style>{`
+          {/* Form - Scrollable without visible scrollbar */}
+          <form
+            onSubmit={handleSubmit}
+            className="p-6 space-y-4 flex-1"
+            style={{
+              overflowY: "auto",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
+            <style>{`
         form::-webkit-scrollbar {
           display: none;
         }
       `}</style>
-      
-      {/* Title */}
-      <input
-        type="text"
-        placeholder="Event Title"
-        value={formData.title}
-        onChange={(e) => setFormData({...formData, title: e.target.value})}
-        className="w-full border rounded-lg p-2"
-        required
-      />
 
-      {/* Description */}
-      <textarea
-        placeholder="Description"
-        value={formData.description}
-        onChange={(e) => setFormData({...formData, description: e.target.value})}
-        className="w-full border rounded-lg p-2"
-      />
+            {/* Title */}
+            <input
+              type="text"
+              placeholder="Event Title"
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              className="w-full border rounded-lg p-2"
+              required
+            />
 
-      {/* Date */}
-      <input
-        type="date"
-        value={formData.date}
-        onChange={(e) => setFormData({...formData, date: e.target.value})}
-        className="w-full border rounded-lg p-2"
-        required
-      />
+            {/* Description */}
+            <textarea
+              placeholder="Description"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full border rounded-lg p-2"
+            />
 
-      {/* Venue */}
-      <input
-        type="text"
-        placeholder="Venue"
-        value={formData.venue}
-        onChange={(e) => setFormData({...formData, venue: e.target.value})}
-        className="w-full border rounded-lg p-2"
-        required
-      />
+            {/* Date */}
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
+              className="w-full border rounded-lg p-2"
+              required
+            />
 
-      {/* Max Score */}
-      <input
-        type="number"
-        value={formData.maxScore}
-        onChange={(e) => setFormData({...formData, maxScore: Number(e.target.value)})}
-        className="w-full border rounded-lg p-2"
-      />
+            {/* Venue */}
+            <input
+              type="text"
+              placeholder="Venue"
+              value={formData.venue}
+              onChange={(e) =>
+                setFormData({ ...formData, venue: e.target.value })
+              }
+              className="w-full border rounded-lg p-2"
+              required
+            />
 
-      {/* Incharge */}
-      <input
-        type="text"
-        placeholder="Incharge Name"
-        value={formData.incharge}
-        onChange={(e) => setFormData({...formData, incharge: e.target.value})}
-        className="w-full border rounded-lg p-2"
-      />
+            {/* Max Score */}
+            <input
+              type="number"
+              value={formData.maxScore}
+              onChange={(e) =>
+                setFormData({ ...formData, maxScore: Number(e.target.value) })
+              }
+              className="w-full border rounded-lg p-2"
+            />
 
-      {/* Status */}
-      <select
-        value={formData.status}
-        onChange={(e) => setFormData({...formData, status: e.target.value})}
-        className="w-full border rounded-lg p-2"
-      >
-        <option value="upcoming">Upcoming</option>
-        <option value="ongoing">Ongoing</option>
-        <option value="completed">Completed</option>
-      </select>
+            {/* Incharge */}
+            <input
+              type="text"
+              placeholder="Incharge Name"
+              value={formData.incharge}
+              onChange={(e) =>
+                setFormData({ ...formData, incharge: e.target.value })
+              }
+              className="w-full border rounded-lg p-2"
+            />
 
-      {/* Gradient */}
-      <input
-        type="text"
-        placeholder="Gradient (e.g., from-blue-500 to-purple-600)"
-        value={formData.gradientColor}
-        onChange={(e) => setFormData({...formData, gradientColor: e.target.value})}
-        className="w-full border rounded-lg p-2"
-      />
+            {/* Status */}
+            <select
+              value={formData.status}
+              onChange={(e) =>
+                setFormData({ ...formData, status: e.target.value })
+              }
+              className="w-full border rounded-lg p-2"
+            >
+              <option value="upcoming">Upcoming</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="completed">Completed</option>
+            </select>
 
-      {/* Image Upload */}
-      <input
-        type="file"
-        onChange={(e) => setFormData({...formData, imageFile: e.target.files[0]})}
-        className="w-full"
-      />
+            {/* Gradient */}
+            <input
+              type="text"
+              placeholder="Gradient (e.g., from-blue-500 to-purple-600)"
+              value={formData.gradientColor}
+              onChange={(e) =>
+                setFormData({ ...formData, gradientColor: e.target.value })
+              }
+              className="w-full border rounded-lg p-2"
+            />
 
-      {/* Buttons */}
-      <div className="flex gap-3 pt-4">
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 bg-blue-600 text-white py-2 rounded-lg"
-        >
-          {loading ? 'Creating...' : 'Create Event'}
-        </button>
+            {/* Image Upload */}
+            <input
+              type="file"
+              onChange={(e) =>
+                setFormData({ ...formData, imageFile: e.target.files[0] })
+              }
+              className="w-full"
+            />
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 bg-gray-200 py-2 rounded-lg"
-        >
-          Cancel
-        </button>
+            {/* Buttons */}
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg"
+              >
+                {loading ? "Creating..." : "Create Event"}
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 bg-gray-200 py-2 rounded-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-
-    </form>
-  </div>
-</div>
- 
     </>
   );
 };

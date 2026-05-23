@@ -8,12 +8,11 @@ const EventDetails = () => {
   console.log("eventId", eventId);
   
   const [event, setEvent] = useState(null);
-
+  console.log("Events data:",event);
   async function fetcheventData() {
     try {
       const events = await eventsService.getAllEvents(); // Direct array
       console.log("Events:", events);
-      
       const foundEvent = events.find((ev) => ev._id == eventId);
       console.log("Found event:", foundEvent);
       
@@ -173,7 +172,7 @@ const EventDetails = () => {
                         </p>
                       
                         <p className="text-gray-700 mb-2">
-                          <strong>Incharge:</strong> {event.incharge}
+                          <strong>Incharge:</strong> {event.incharge[0].name}
                         </p>
                          <p className="text-gray-700 mb-2">
                           <strong>MaxParticipants:</strong> {event.maxParticipants}

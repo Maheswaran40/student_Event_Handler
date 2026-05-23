@@ -362,11 +362,166 @@ api.interceptors.response.use(
 
 
 
+// scorecollection 
+export const scoresService = {
+  addOrUpdateScore: async (scoreData) => {
+    const token = localStorage.getItem("token");
 
+    const payload = {
+      studentId: scoreData.studentId,
+      eventId: scoreData.eventId,
+      score: scoreData.score,
+      remarks: scoreData.remarks || "",
+    };
 
+    const response = await axios.post(
+      "http://localhost:5000/api/score/add-score",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
+    return response.data;
+  },
+  // Get all scores for a specific event
+  getScoresByEvent: async (eventId) => {
+    const token = localStorage.getItem("token");
 
+    const response = await axios.get(
+      `${API_BASE_URL}/score/event/${eventId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
+    return response.data;
+  },
+   // Get single score by ID
+  getScoreById: async (scoreId) => {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.get(
+      `${API_BASE_URL}/score/${scoreId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  },
+   updateScore: async (scoreId, scoreData) => {
+    const token = localStorage.getItem("token");
+
+    const payload = {
+      score: scoreData.score,
+      remarks: scoreData.remarks || "",
+    };
+
+    const response = await axios.put(
+      `${API_BASE_URL}/score/update-score/${scoreId}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  },
+   // Delete score by ID
+  deleteScore: async (scoreId) => {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.delete(
+      `${API_BASE_URL}/score/delete-score/${scoreId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  },
+  // Get scores by student
+  getScoresByStudent: async (studentId) => {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.get(
+      `${API_BASE_URL}/scores/student/${studentId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  },
+  // Get leaderboard for an event
+  getLeaderboard: async (eventId, limit = 10) => {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.get(
+      `${API_BASE_URL}/scores/leaderboard/${eventId}?limit=${limit}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  },
+   // Bulk add scores
+  bulkAddScores: async (scoresArray) => {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.post(
+      `${API_BASE_URL}/score/bulk-add-scores`,
+      { scores: scoresArray },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  },
+  // Get top scorers across all events
+  getTopScorers: async (limit = 10) => {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.get(
+      `${API_BASE_URL}/scores/top-scorers?limit=${limit}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  },
+};
 
 
 export default api

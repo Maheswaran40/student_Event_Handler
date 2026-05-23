@@ -14,7 +14,6 @@ const CreateVolunteerForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
   const roles = [
     { value: 'volunteer', label: 'Volunteer' },
     { value: 'admin', label: 'Admin' },
@@ -32,7 +31,7 @@ const CreateVolunteerForm = () => {
       });
       
       const eventsArray = response.data.data;
-      
+      console.log("eventsArray",response)
       if (Array.isArray(eventsArray)) {
         setEvents(eventsArray);
         console.log("Events loaded:", eventsArray.length);

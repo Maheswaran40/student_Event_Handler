@@ -35,7 +35,7 @@ const addOrUpdateScore = async (req, res) => {
         eventId,
         studentId,
         score: score || 0,
-        status: status || 'Pending',
+        status: status || 'participated',
         addedBy: addedBy || null
       });
 
@@ -79,7 +79,7 @@ const getScoresByEvent = async (req, res) => {
     }
 
     const scores = await EventScore.find({ eventId })
-      .populate('studentId', 'name email rollNumber') // Adjust fields as per your Student model
+      .populate('studentId', 'name phoneNo department') // Adjust fields as per your Student model
       .populate('eventId', 'name date description') // Adjust fields as per your Event model
       .populate('addedBy', 'name email') // Adjust fields as per your User model
       .sort({ score: -1 }); // Sort by highest score first
