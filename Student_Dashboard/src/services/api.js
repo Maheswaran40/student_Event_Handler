@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -26,8 +26,8 @@ api.interceptors.request.use(
   }
 )
 
-const EventUrl="http://localhost:5000/api/events"
-const ActivityUrl = "http://localhost:5000/api/activities"
+const EventUrl=import.meta.env.VITE_EVENT_API_URL
+const ActivityUrl = import.meta.env.VITE_ACTIVITY_API_URL
 // Mock data for demonstration
 export const eventsService = {
  getAllEvents: async () => {
@@ -50,25 +50,7 @@ export const eventsService = {
       return null;
     }
   },
-  
-  // createEvent: async (eventData) => {
-  //   // Simulate API call
-  //   return new Promise((resolve) => {
-  //     setTimeout(() => {
-  //       resolve({ ...eventData, id: Date.now() })
-  //     }, 500)
-  //   })
-  // },
-  // createEvent: async (eventData) => {
-  //   try {
-  //     const res = await axios.post(EventUrl, eventData);
-  //     console.log("event creted",res)
-  //     return res.data.data; // Returns the created event
-  //   } catch (error) {
-  //     console.error("Error creating event:", error);
-  //     throw error; // Throw error so component can handle it
-  //   }
-  // },
+
 
   createEvent: async (eventData) => {
     try {
@@ -175,24 +157,7 @@ updateEvent: async (id, eventData) => {
   }
 }
 
-// export const userService = {
-//   getProfile: async () => {
-//     const user = await axios.get("http://localhost:5000/api/students/")
-//     return user.data;
-//     if (user) {
-//       return JSON.parse(user)
-//     }
-//     throw new Error('No user found')
-//   },
-  
-//   updateProfile: async (profileData) => {
-//     return new Promise((resolve) => {
-//       setTimeout(() => {
-//         resolve(profileData)
-//       }, 500)
-//     })
-//   }
-// }
+
 
 export const userService = {
   // Fixed version - no mock data
@@ -375,7 +340,7 @@ export const scoresService = {
     };
 
     const response = await axios.post(
-      "http://localhost:5000/api/score/add-score",
+      import.meta.env.VITE_ADDSCORE_API_URL,
       payload,
       {
         headers: {

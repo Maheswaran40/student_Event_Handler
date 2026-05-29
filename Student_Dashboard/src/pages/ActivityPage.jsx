@@ -108,7 +108,7 @@ const ActivityPage = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await axios.get("http://localhost:5000/api/me", {
+      const response = await axios.get(import.meta.env.VITE_AUTH_API_URL, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -133,7 +133,7 @@ const ActivityPage = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.get("http://localhost:5000/api/events", {
+      const res = await axios.get(import.meta.env.VITE_EVENT_API_URL, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

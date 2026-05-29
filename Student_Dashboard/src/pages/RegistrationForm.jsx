@@ -2,8 +2,8 @@ import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
 
 const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
-  let url = "http://localhost:5000/api/students/";
-  let eventUrl = "http://localhost:5000/api/events/upcoming";
+  let url = import.meta.env.VITE_STUDENT_API_URL;
+  let eventUrl = import.meta.env.VITE_EVENT_UPCOMING_API_URL;
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});

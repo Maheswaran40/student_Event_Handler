@@ -4,13 +4,13 @@ import "../../style.css";
 import { Mycontext } from "../Context/Mycontext";
 
 const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
-  let url = "http://localhost:5000/api/students/";
+  let url = import.meta.env.VITE_STUDENT_API_URL;
    const {fetchEvents,eventsData}=useContext(Mycontext)
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   console.log("eventsdata state",eventsData);
   
-  
+
   const [formData, setFormData] = useState({
     name: "",
     department: "",

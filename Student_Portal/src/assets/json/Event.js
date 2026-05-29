@@ -82,7 +82,7 @@ import axios from "axios"
 
 export const eventData=async()=>{
   try{
-    let res=await axios.get("http//localhost:5000/api/events")
+    let res=await axios.get(import.meta.env.VITE_EVENT_API_URL)
     return res.data
   }
   catch (error) {
