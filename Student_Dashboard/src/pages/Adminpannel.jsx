@@ -36,7 +36,7 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
   const [users, setUsers] = useState([]);
-  const[StudentCount,SetStudentCount]=useState(0)
+  const [StudentCount, SetStudentCount] = useState(0);
   const [activeTab, setActiveTab] = useState("overview");
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -52,11 +52,11 @@ const AdminPanel = () => {
     maxParticipants: "",
     image: "",
     gradientColor: "from-indigo-500 to-purple-600",
-    tagline:"",
-    imageFile: null  // ✅ Added missing field
+    tagline: "",
+    imageFile: null, // ✅ Added missing field
   });
 
-console.log("users",users)
+  console.log("users", users);
 
   // Create a gradient options constant at the top of your component or in a separate file
   const gradientOptions = [
@@ -124,8 +124,10 @@ console.log("users",users)
       const eventsData = await eventsService.getAllEvents();
       setEvents(eventsData);
       const studentsData = await userService.getProfile();
-      SetStudentCount(studentsData.count) 
-console.log("hi",studentsData.data.students)
+      console.log("admin studentsData",studentsData.data.count);
+      
+      SetStudentCount(studentsData.data.count);
+      console.log("hi", studentsData.data.students);
 
       // Transform student data to match your UI expectations
       const transformedUsers = studentsData.data.students.map((student) => ({
@@ -138,10 +140,10 @@ console.log("hi",studentsData.data.students)
         eventsAttended: student.eventsAttended?.length || 0,
         joinDate: student.createdAt?.split("T")[0],
         status: student.isActive ? "active" : "inactive",
-        tagline:student.tagline
+        tagline: student.tagline,
       }));
       setUsers(transformedUsers);
-      console.log("transformedUsers")
+      console.log("transformedUsers");
     } catch (error) {
       toast.error("Failed to fetch data");
     } finally {
@@ -157,22 +159,15 @@ console.log("hi",studentsData.data.students)
   // ✅ FIXED: Corrected handleCreateEvent
   const handleCreateEvent = async () => {
     // Validate required fields
-    if (
-      !formData.title ||
-      !formData.date ||
-      !formData.venue 
-      
-    ) {
-      toast.error(
-        "Please fill in all required fields (title, date, venue)",
-      );
+    if (!formData.title || !formData.date || !formData.venue) {
+      toast.error("Please fill in all required fields (title, date, venue)");
       return;
     }
 
     try {
       // Create FormData for file upload
       const formDataToSend = new FormData();
-      
+
       // Combine date and time into a single Date object
       let eventDateTime;
       if (formData.time) {
@@ -186,11 +181,17 @@ console.log("hi",studentsData.data.students)
       formDataToSend.append("description", formData.description);
       formDataToSend.append("date", eventDateTime.toISOString());
       formDataToSend.append("venue", formData.venue);
-      formDataToSend.append("maxParticipants", parseInt(formData.maxParticipants) || 10);
+      formDataToSend.append(
+        "maxParticipants",
+        parseInt(formData.maxParticipants) || 10,
+      );
       formDataToSend.append("status", "upcoming");
-      formDataToSend.append("gradientColor", formData.gradientColor || "from-indigo-500 to-purple-600");
+      formDataToSend.append(
+        "gradientColor",
+        formData.gradientColor || "from-indigo-500 to-purple-600",
+      );
       formDataToSend.append("tagline", formData.tagline);
-      
+
       // Append image file if exists
       if (formData.imageFile) {
         formDataToSend.append("image", formData.imageFile);
@@ -224,7 +225,7 @@ console.log("hi",studentsData.data.students)
     }
   };
 
-    const handleDeleteEvent = async (eventId) => {
+  const handleDeleteEvent = async (eventId) => {
     if (window.confirm("Are you sure you want to delete this event?")) {
       console.log("Deleting event with ID:", eventId);
 
@@ -242,22 +243,25 @@ console.log("hi",studentsData.data.students)
   const handleUpdateEvent = async () => {
     try {
       const formDataToSend = new FormData();
-      
+
       let eventDateTime;
       if (formData.time) {
         eventDateTime = new Date(`${formData.date}T${formData.time}`);
       } else {
         eventDateTime = new Date(formData.date);
       }
-      
+
       formDataToSend.append("title", formData.title);
       formDataToSend.append("description", formData.description);
       formDataToSend.append("date", eventDateTime.toISOString());
       formDataToSend.append("venue", formData.venue);
-      formDataToSend.append("maxParticipants", parseInt(formData.maxParticipants) || 10);
+      formDataToSend.append(
+        "maxParticipants",
+        parseInt(formData.maxParticipants) || 10,
+      );
       formDataToSend.append("gradientColor", formData.gradientColor);
       formDataToSend.append("tagline", formData.tagline);
-      
+
       if (formData.imageFile) {
         formDataToSend.append("image", formData.imageFile);
       }
@@ -275,9 +279,6 @@ console.log("hi",studentsData.data.students)
       toast.error("Failed to update event");
     }
   };
-  
-
-
 
   const handleEditEvent = (event) => {
     setEditingEvent(event);
@@ -287,12 +288,12 @@ console.log("hi",studentsData.data.students)
       date: event.date,
       time: event.time,
       venue: event.venue,
-      incharg:[],
+      incharg: [],
       maxParticipants: event.maxParticipants || "",
       image: event.image || "",
       gradientColor: event.gradientColor || "from-indigo-500 to-purple-600",
       tagline: event.tagline,
-      imageFile: null
+      imageFile: null,
     });
     setShowEventModal(true);
   };
@@ -309,7 +310,7 @@ console.log("hi",studentsData.data.students)
       image: "",
       gradientColor: "from-indigo-500 to-purple-600",
       tagline: "",
-      imageFile: null
+      imageFile: null,
     });
     setEditingEvent(null);
   };
@@ -366,12 +367,15 @@ console.log("hi",studentsData.data.students)
 
   const categories = ["all", ...new Set(events.map((e) => e.category))];
 
-    // event search function in dashboard admin pannel start
+  // event search function in dashboard admin pannel start
 
+  const [eventSearchData, setEventSearchData] = useState([]);
+  console.log("eventSearchData", eventSearchData);
 
-  const[eventSearchData,setEventSearchData] = useState("");
   function eventSearch(e) {
-    setEventSearchData(e.target.value);
+    // setEventSearchData(e.target.value);
+    let input = e.target.value;
+    setEventSearchData(users.filter((v, i) => v.name == input));
   }
 
   // event search function in dashboard admin pannel end
@@ -394,9 +398,6 @@ console.log("hi",studentsData.data.students)
       </div>
     );
   }
-
-
-  
 
   return (
     <div className="flex bg-gray-50 min-h-screen">
@@ -628,7 +629,7 @@ console.log("hi",studentsData.data.students)
                                 {event.category}
                               </div>
                             </div>
-                           </td>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
                               {event.date}
@@ -636,15 +637,15 @@ console.log("hi",studentsData.data.students)
                             <div className="text-sm text-gray-500">
                               {event.time}
                             </div>
-                           </td>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {event.venue}
-                           </td>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="text-sm text-gray-900">
                               {event.registeredCount}/{event.maxParticipants}
                             </span>
-                           </td>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
                               className={`px-2 py-1 text-xs rounded-full ${
@@ -657,7 +658,7 @@ console.log("hi",studentsData.data.students)
                                 ? "Upcoming"
                                 : "Past"}
                             </span>
-                           </td>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex space-x-2">
                               <button
@@ -681,7 +682,7 @@ console.log("hi",studentsData.data.students)
                                 <FiEye />
                               </button>
                             </div>
-                           </td>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -716,99 +717,205 @@ console.log("hi",studentsData.data.students)
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {users.map((user) => (
-                  <div
-                    key={user.id}
-                    className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                          {user.name.charAt(0)}
+                {eventSearchData.length > 0
+                  ? eventSearchData.map((user) => (
+                      <div
+                        key={user.id}
+                        className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                              {user.name.charAt(0)}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-800">
+                                {user.name}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                PH : {user.phone}
+                              </p>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span
+                                  className={`px-2 py-1 text-xs rounded-full ${
+                                    user.role === "admin"
+                                      ? "bg-purple-100 text-purple-700"
+                                      : "bg-blue-100 text-blue-700"
+                                  }`}
+                                >
+                                  {user.role}
+                                </span>
+                                <span
+                                  className={`px-2 py-1 text-xs rounded-full ${
+                                    user.status === "active"
+                                      ? "bg-green-100 text-green-700"
+                                      : "bg-red-100 text-red-700"
+                                  }`}
+                                >
+                                  {user.status}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() =>
+                                handleUserAction(user.id, "makeAdmin")
+                              }
+                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                              title="Make Admin"
+                            >
+                              <FiStar />
+                            </button>
+                            {user.status === "active" ? (
+                              <button
+                                onClick={() =>
+                                  handleUserAction(user.id, "block")
+                                }
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Block User"
+                              >
+                                <FiUserX />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  handleUserAction(user.id, "activate")
+                                }
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Activate User"
+                              >
+                                <FiUserCheck />
+                              </button>
+                            )}
+                            <button
+                              onClick={() =>
+                                toast(`Sending email to ${user.email}`)
+                              }
+                              className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                              title="Send Email"
+                            >
+                              <FiMail />
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-800">
-                            {user.name}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            PH : {user.phone}
-                          </p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <span
-                              className={`px-2 py-1 text-xs rounded-full ${
-                                user.role === "admin"
-                                  ? "bg-purple-100 text-purple-700"
-                                  : "bg-blue-100 text-blue-700"
-                              }`}
-                            >
-                              {user.role}
+                        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
+                          <div>
+                            <span className="text-gray-500">
+                              Events Attended:
                             </span>
-                            <span
-                              className={`px-2 py-1 text-xs rounded-full ${
-                                user.status === "active"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
-                              }`}
-                            >
-                              {user.status}
+                            <span className="ml-2 font-semibold text-gray-800">
+                              {user.eventsAttended}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Joined:</span>
+                            <span className="ml-2 text-gray-600">
+                              {user.joinDate}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleUserAction(user.id, "makeAdmin")}
-                          className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                          title="Make Admin"
-                        >
-                          <FiStar />
-                        </button>
-                        {user.status === "active" ? (
-                          <button
-                            onClick={() => handleUserAction(user.id, "block")}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Block User"
-                          >
-                            <FiUserX />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              handleUserAction(user.id, "activate")
-                            }
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Activate User"
-                          >
-                            <FiUserCheck />
-                          </button>
-                        )}
-                        <button
-                          onClick={() =>
-                            toast(`Sending email to ${user.email}`)
-                          }
-                          className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                          title="Send Email"
-                        >
-                          <FiMail />
-                        </button>
+                    ))
+                  : users.map((user) => (
+                      <div
+                        key={user.id}
+                        className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                              {user.name.charAt(0)}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-800">
+                                {user.name}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                PH : {user.phone}
+                              </p>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span
+                                  className={`px-2 py-1 text-xs rounded-full ${
+                                    user.role === "admin"
+                                      ? "bg-purple-100 text-purple-700"
+                                      : "bg-blue-100 text-blue-700"
+                                  }`}
+                                >
+                                  {user.role}
+                                </span>
+                                <span
+                                  className={`px-2 py-1 text-xs rounded-full ${
+                                    user.status === "active"
+                                      ? "bg-green-100 text-green-700"
+                                      : "bg-red-100 text-red-700"
+                                  }`}
+                                >
+                                  {user.status}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() =>
+                                handleUserAction(user.id, "makeAdmin")
+                              }
+                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                              title="Make Admin"
+                            >
+                              <FiStar />
+                            </button>
+                            {user.status === "active" ? (
+                              <button
+                                onClick={() =>
+                                  handleUserAction(user.id, "block")
+                                }
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Block User"
+                              >
+                                <FiUserX />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  handleUserAction(user.id, "activate")
+                                }
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Activate User"
+                              >
+                                <FiUserCheck />
+                              </button>
+                            )}
+                            <button
+                              onClick={() =>
+                                toast(`Sending email to ${user.email}`)
+                              }
+                              className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                              title="Send Email"
+                            >
+                              <FiMail />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
+                          <div>
+                            <span className="text-gray-500">
+                              Events Attended:
+                            </span>
+                            <span className="ml-2 font-semibold text-gray-800">
+                              {user.eventsAttended}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Joined:</span>
+                            <span className="ml-2 text-gray-600">
+                              {user.joinDate}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
-                      <div>
-                        <span className="text-gray-500">Events Attended:</span>
-                        <span className="ml-2 font-semibold text-gray-800">
-                          {user.eventsAttended}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Joined:</span>
-                        <span className="ml-2 text-gray-600">
-                          {user.joinDate}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    ))}
               </div>
             </div>
           )}
@@ -993,7 +1100,7 @@ console.log("hi",studentsData.data.students)
                     />
                   </div>
                   {/* tag line */}
-                      <div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Tag *
                     </label>
