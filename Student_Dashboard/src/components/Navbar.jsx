@@ -6,7 +6,7 @@ import Sidebar from "./Sidebar";
 
 const Navbar = () => {
   const { user, logout, isAuthenticated, isAdmin } = useAuth();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
     const [isOpen, setIsOpen] = useState(false);
 
@@ -16,7 +16,6 @@ const Navbar = () => {
     console.log('Selected:', option);
     setIsOpen(false);
   };
-
   if (!isAuthenticated) return null;
 
   return (

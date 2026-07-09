@@ -8,7 +8,7 @@ import Dashboard from './pages/Dashboard'
 import Events from './pages/Event'
 import Profile from './pages/Profie'
 import AdminPanel from './pages/Adminpannel'
-import HeroPage from './pages/HeroPage'
+// import HeroPage from './pages/HeroPage'
 import "./style.css"
 import RegistrationForm from './pages/RegistrationForm'
 import EventDetails from './components/EventDetails'
@@ -23,13 +23,13 @@ const hideLayout=location.pathname==="/"
        {!hideLayout && <Navbar/>}
         <div className="min-h-screen bg-gray-50">
             <Routes>
-              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Login />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/events" element={<Events />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/Activity" element={<ActivityPage />} />
               <Route path="/admin" element={<AdminPanel />} />
-              <Route path="/" element={<HeroPage/>} />
+              {/* <Route path="/" element={<HeroPage/>} /> */}
               <Route path="/incharges" element={<Inchargers/>} />
               <Route path="/volunteerForm" element={<CreateVolunteerForm/>} />
               <Route path="/register" element={<RegistrationForm/>} />

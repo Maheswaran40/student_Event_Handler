@@ -22,9 +22,9 @@ const Sidebar = ({close}) => {
     { to: '/events', icon: FiCalendar, label: 'Events' },
     { to: '/activity', icon: LuActivity, label: 'Activity' },
     { to: '/profile', icon: FiUser, label: 'Profile' },
-    { to: '/settings', icon: FiSettings, label: 'Settings' },
-    { to: '/analytics', icon: FiTrendingUp, label: 'Analytics' },
-    { to: '/notifications', icon: FiBell, label: 'Notifications' },
+    // { to: '/settings', icon: FiSettings, label: 'Settings' },
+    // { to: '/analytics', icon: FiTrendingUp, label: 'Analytics' },
+    // { to: '/notifications', icon: FiBell, label: 'Notifications' },
     { to: '/volunteerForm', icon: FaWpforms, label: 'create volunteer' },
     { to: '/incharges', icon: FaPersonChalkboard , label: 'Event Inchargers' },
   ]

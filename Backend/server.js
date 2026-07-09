@@ -31,12 +31,12 @@ app.use((req, res, next) => {
 });
 
 
-
 // Routes
 app.use('/api/students', studentRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api',authroutes)
+
 // Home route
 app.get('/', (req, res) => {
   res.json({
