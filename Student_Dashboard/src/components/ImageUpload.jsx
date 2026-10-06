@@ -36,7 +36,7 @@
 //     uploadData.append('image', file);
 
 //     try {
-//       const response = await axios.post('http://localhost:5000/api/upload/image', uploadData, {
+//       const response = await axios.post('http://localhost:8000/api/upload/image', uploadData, {
 //         headers: {
 //           'Content-Type': 'multipart/form-data',
 //         },

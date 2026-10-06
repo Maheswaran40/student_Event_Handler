@@ -9,6 +9,10 @@ const CreateVolunteerForm = () => {
     role: 'volunteer',
     eventId: ''
   });
+
+    const API_URL =
+  import.meta.env.VITE_BASE_URL || import.meta.env.VITE_LOCAL_BASE_URL
+  ;
   
   const [eventsData, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,7 +26,7 @@ const CreateVolunteerForm = () => {
 
   const fetchEvents = async () => {
     try {
-      const eventUrl = "http://localhost:5000/api/events/upcoming";
+      const eventUrl = `${API_URL}/api/events/upcoming`;
       const token = localStorage.getItem("token");
       
       const response = await axios.get(eventUrl, {
@@ -94,7 +98,7 @@ const CreateVolunteerForm = () => {
     return true;
   };
 
-  const VolunteerUrl = "http://localhost:5000/api/create-user";
+  const VolunteerUrl = `${API_URL}api/create-user`;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -104,12 +104,16 @@ const ActivityPage = () => {
   const isAdmin = currentUser == "admin";
   const isVolunteer = currentUser == "volunteer";
   console.log("students",students);
+
+  const API_URL =
+  import.meta.env.VITE_BASE_URL || import.meta.env.VITE_LOCAL_BASE_URL
+  ;
   
   const getCurrentUser = async () => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await axios.get("http://localhost:5000/api/me", {
+      const response = await axios.get(`${API_URL}/api/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -134,7 +138,7 @@ const ActivityPage = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.get("http://localhost:5000/api/events", {
+      const res = await axios.get(`${API_URL}/api/events`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

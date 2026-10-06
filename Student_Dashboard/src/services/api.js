@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || import.meta.env.VITE_LOCAL_BASE_URL
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -26,8 +26,8 @@ api.interceptors.request.use(
   }
 )
 
-const EventUrl="http://localhost:5000/api/events"
-const ActivityUrl = "http://localhost:5000/api/activities"
+const EventUrl=`${API_BASE_URL}/api/events`
+const ActivityUrl = `${API_BASE_URL}/api/activities`
 // Mock data for demonstration
 export const eventsService = {
  getAllEvents: async () => {
@@ -177,7 +177,7 @@ updateEvent: async (id, eventData) => {
 
 // export const userService = {
 //   getProfile: async () => {
-//     const user = await axios.get("http://localhost:5000/api/students/")
+//     const user = await axios.get("http://localhost:8000/api/students/")
 //     return user.data;
 //     if (user) {
 //       return JSON.parse(user)
@@ -198,7 +198,7 @@ export const userService = {
   // Fixed version - no mock data
   getProfile: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/students/`)
+      const response = await axios.get(`${API_BASE_URL}/api/students/`)
       return response // Returns array of students
       
     } catch (error) {

@@ -4,7 +4,7 @@ import "../../style.css";
 import { Mycontext } from "../Context/Mycontext";
 
 const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
-  let url = "http://localhost:5000/api/students/";
+  let url = "http://localhost:8000/api/students/";
    const {fetchEvents,eventsData}=useContext(Mycontext)
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});

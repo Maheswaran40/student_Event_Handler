@@ -2,12 +2,18 @@ import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
 
 const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
-  let url = "http://localhost:5000/api/students/";
-  let eventUrl = "http://localhost:5000/api/events/upcoming";
+
+   const API_URL =
+    import.meta.env.VITE_BASE_URL || import.meta.env.VITE_LOCAL_BASE_URL;
+
+  let url = `${API_URL}/api/students/`;
+  let eventUrl = `${API_URL}/api/events/upcoming`;
+
+ 
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [gradientColor,setGradientColor]=useState("")
+  const [gradientColor, setGradientColor] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     department: "",
@@ -17,18 +23,16 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
     phoneNo: "",
   });
 
-
-  
   // Fetch events on component mount
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         const res = await axios.get(eventUrl);
-        console.log("res from dashboard",res)
+        console.log("res from dashboard", res);
         const eventsData = res.data.data || []; // Get data array or empty array
         setEvents(eventsData);
-        setGradientColor(res.data.data[0].gradientColor)
-        console.log()
+        setGradientColor(res.data.data[0].gradientColor);
+        console.log();
       } catch (err) {
         console.error("Error fetching events:", err);
         setEvents([]); // Set empty array on error
@@ -37,11 +41,6 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
 
     fetchEvents();
   }, []);
-
-
-
-
-
 
   const departmentOptions = [
     "Computer Science",
@@ -77,7 +76,7 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -88,9 +87,9 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
       setLoading(true);
       const res = await axios.post(url, formData);
       alert(res.data.message || "Registration successful!");
-      fetchEvents()
+      fetchEvents();
       onSuccess?.(res.data.data);
-      
+
       // Reset form
       setFormData({
         name: "",
@@ -133,7 +132,9 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
               value={formData.name}
               onChange={handleChange}
               className={`w-[100%] pl-9 pr-3 py-2.5 border ${
-                errors.name ? "border-red-400 ring-1 ring-red-200" : "border-gray-300"
+                errors.name
+                  ? "border-red-400 ring-1 ring-red-200"
+                  : "border-gray-300"
               } rounded-xl focus:ring-2 focus:ring-indigo-300 transition`}
               placeholder="John Doe"
             />
@@ -196,7 +197,7 @@ const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
               </option>
               {events.map((event) => (
                 <option key={event._id} value={event._id}>
-                  {event.title} 
+                  {event.title}
                 </option>
               ))}
             </select>
