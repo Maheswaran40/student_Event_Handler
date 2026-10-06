@@ -15,7 +15,7 @@ import { FaWpforms } from "react-icons/fa6";
 import { useAuth } from '../context/AuthContext'
 
 const Sidebar = ({close}) => {
-  const { isAdmin } = useAuth()
+  const { _isAdmin } = useAuth()
   
   const navItems = [
     { to: '/dashboard', icon: FiHome, label: 'Dashboard' },
