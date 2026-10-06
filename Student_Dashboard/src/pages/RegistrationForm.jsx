@@ -3,8 +3,9 @@ import axios from "axios";
 
 const RegistrationForm = ({ eventName, bgGradient, onSuccess }) => {
 
-   const API_URL =
-    import.meta.env.VITE_BASE_URL || import.meta.env.VITE_LOCAL_BASE_URL;
+   const API_URL = "https://ilife-event-handler-backend.onrender.com"
+  //  const API_URL =
+  //   import.meta.env.VITE_BASE_URL || import.meta.env.VITE_LOCAL_BASE_URL;
 
   let url = `${API_URL}/api/students/`;
   let eventUrl = `${API_URL}/api/events/upcoming`;
