@@ -82,7 +82,7 @@ import axios from "axios"
 
 export const eventData=async()=>{
   try{
-    let res=await axios.get("http//localhost:5000/api/events")
+    let res=await axios.get("https://ilife-event-handler-backend.onrender.com/api/events")
     return res.data
   }
   catch (error) {

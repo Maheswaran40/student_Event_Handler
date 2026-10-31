@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = `https://ilife-event-handler-backend.onrender.com || import.meta.env.VITE_LOCAL_BASE_URL`
+let API_BASE_URL = "https://ilife-event-handler-backend.onrender.com" 
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -145,7 +145,7 @@ updateEvent: async (id, eventData) => {
    // Add this for checking registered students
   getEventStudents: async (eventId) => {
     try {
-      const res = await axios.get(`${BaseUrl}/events/${eventId}/students`);
+      const res = await api.get(`/events/${eventId}/students`);
       return res.data;
     } catch (error) {
       console.error("Error fetching event students:", error);

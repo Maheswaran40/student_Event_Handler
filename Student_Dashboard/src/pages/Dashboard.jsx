@@ -35,13 +35,13 @@ const Dashboard = () => {
       })
 
     } catch (error) {
-      toast.error('Failed to fetch events')
+      toast.error('Failed to fetch events',error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleRegister = (eventId) => {
+  const handleRegister = () => {
     toast.success('Successfully registered for the event!')
   }
 

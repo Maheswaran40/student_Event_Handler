@@ -6,17 +6,14 @@ function ContextProvider({ children }) {
   const [eventsData, setEventData] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = "https://ilife-event-handler-backend.onrender.com"
   ;
-  // const API_URL =
-  // import.meta.env.VITE_BASE_URL || import.meta.env.VITE_LOCAL_BASE_URL
-  // ;
+  const API_URL ="https://ilife-event-handler-backend.onrender.com"  ;
 
   const fetchEvents = async () => {
     try {
       setLoading(true);
 
-      const res = await axios.get("/api/events/");
+      const res = await axios.get(`${API_URL}/api/events/`);
       console.log("eventdata", res.data.data);
       // ✅ store full events array
       setEventData(res.data.data);
